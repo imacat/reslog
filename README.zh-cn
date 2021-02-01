@@ -1,0 +1,55 @@
+reslog - Apache 记录档 IP 反查程式
+
+  版权所有 (c) 2000-2007 依玛猫
+  
+  本程式是自由软体，您可以遵照自由软体基金会 (Free Software Foundation)
+  出版的 GNU 通用公共许可证条款 (GNU General Public License) 第三版来修
+  改和重新发布这一程式，或者自由选择使用任何更新的版本。
+  
+  发布这一程式的目的是希望它有用，但没有任何担保。甚至没有适合特定目的
+  而隐含的担保。更详细的情况请参阅 GNU 通用公共许可证。
+  
+  您应该已经和程式一起收到一份 GNU 通用公共许可证的副本。如果还没有，参
+  阅<http://www.gnu.org/licenses/>。
+
+　　reslog 是记录档反查程式，用来反查 Apache 记录档里 IP 的主机名称。查过后，
+可以套用像 Analog 之类的记录档统计程式。你可以把它当做 Apache HostNameLookups
+指令的替代品，每天一次反查当天所有的 IP 。
+
+
+◎说明文件
+
+　　请输入 perldoc reslog ，阅读 reslog 的说明。
+
+
+◎安装指南
+
+　　请详阅 INSTALL.zh-tw 档案的安装指南。
+
+
+◎更新、修正说明
+
+　　请详阅 Changes 档案的更新说明，以了解新增功能、问题修正、更新等。
+
+
+◎技术支援
+
+　　reslog 的网站在 http://reslog.sourceforge.net/ ，请随时上网了解最新讯息。
+
+　　reslog 有一个邮件通讯 reslog-users@lists.sourceforge.net ，若有任何问题、
+建议、问题回报、修补程式，请寄到邮件通讯上。请连上
+https://lists.sourceforge.net/lists/listinfo/reslog-users 加入我们的邮件通讯
+。除非是私人事务，否则请不要直接写信给我。邮件通讯会自动归档，日后若其他人有
+相同问题，可以直接在通讯旧档中找到答案，节省大家宝贵的时间。
+
+
+◎版权声明
+
+　　本程式依 GNU 通用公共许可证 (GPL) 版权发布，请参考 COPYING 档案的说明，了
+解本程式的版权授权内容。
+
+
+依玛猫 imacat ^_*'
+2007-11-26
+imacat@mail.imacat.idv.tw
+http://www.imacat.idv.tw/

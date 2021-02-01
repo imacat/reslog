@@ -1,0 +1,701 @@
+reslog change log
+
+2008-11-18
+	 1. INSTALL and reslog.en.html: Fixed the grammer on
+	    installation with the CPAN or CPANPLUS shell, changed
+	    "install with the CPAN shell using" and "install with the
+	    CPANPLUS shell using" to "install it with the CPAN shell
+	    by running" and "install it with the CPANPLUS shell by
+	    running".
+	 2. INSTALL* and ahping.*.html: Changed "Fedora/Red Hat" to
+	    "Red Hat/Fedora/CentOS".
+
+2008-11-17
+	 1. INSTALL and reslog.en.html: Fixed the grammer on required
+	    and optional module installation, changed "install using"
+	    and "install this using" to "install it by running".
+
+2008-11-15
+	 1. reslog.*.html: Fixed so that installation from source and
+	    with shells are joint into one sentense.
+
+2008-11-12
+	 1. INSTALL*, reslog.*.html: Updated information on
+	    optional Perl modules, to describe different installation
+	    commands for different operating systems.
+
+2008-11-11
+	 1. reslog: Fixed the _private::ProgressBar class so
+	    that it does not use() Term::ReadKey, but require() it
+	    at object initialization.  This enables it to work
+	    when Term::ReadKey is missing.
+	 2. reslog: Fixed the update() method of the
+	    _private::ProgressBar class, to accept a dynamic label.
+
+2008-09-30
+	 1. reslog: Update the update() method of the the
+	    _private::ProgressBar class too use the bracket
+	    characters instead of the pipe character for a better
+	    visual outlook.
+
+2008-09-29
+	 1. reslog: Use the _private::ProgressBar class in replace of
+	    the show_progress() function to display the progress bar.
+	    This makes the progress bar easier and more pretty.
+
+2008-04-21
+	 1. INSTALL and reslog.en.html: Fixed typo: "instalation" to
+	    "installation".
+
+2007-12-05
+	 1. reslog: Initialize the static variables within BEGIN {...}
+	    blocks for all _private::* classes.
+	 2. NEWS: Added.  The NEWS file is quite useful in addition to
+	    the Changes change log.
+	 3. reslog.*.html: Refer to NEWS instead of Changes for release
+	    notes.
+
+2007-12-04	version 3.16
+	Fixed a bug with empty files created with Compress::Bzip2.
+	 1. Makefile.PL: Fixed to prevent importing symbols when
+	    checking optional prerequisites.
+	 2. reslog: Fixed the check_type() method of the
+	    _private::LogFile class, so that empty files are checked
+	    with the file name suffix, too.  This solve the issue
+	    that Compress::Bzip2 creates empty files which confuse
+	    further processing on file name suffix stripping.
+
+2007-12-03
+	 1. Build.PL: Fixed the comment.  This file is "Build.PL",
+	    not "Makefile.PL".
+	 2. Build.PL: Added "use warnings;".
+
+2007-12-03	version 3.15
+	Build system fix.
+	 1. Makefile.PL: Fixed the required Perl version from
+	    "use 5.006" to "use 5.008;".  reslog requires Perl 5.8.0
+	    to work.
+
+2007-12-03	version 3.14
+	Documentation and test suite fixes.
+	 1. reslog.zh-tw.html, reslog.zh-cn.html: Revised the Chinese
+	    text on "3-argument open()" so that it is more readable.
+	 2. t/_helper.pm: Increased time zone range from -1200 to
+	    +1400 in the mkrandlog_normal() and mkrandlog_noip()
+	    subroutines.
+	 3. t/_helper.pm: Version number increased to 0.05.
+	 4. t/_helper.pm: Fixed time zone text generation in the
+	    mkrandlog_normal() and mkrandlog_noip() subroutines,
+	    using "%+05d" instead of "%+03d%02d" so that we will
+	    get a correct representation in time zones +0030 and
+	    -0030.
+	 5. t/03-errors.t: Fixed the title of the "a same log file
+	    specified more than once" test.
+	 6. reslog.*.html: Added <dfn>...</dfn> to the description.
+
+2007-12-03	version 3.13
+	 1. t/03-errors.t: Added.
+	 2. t/reslog.*.html: Revised.
+	 3. t/_helper.pm: Fixed the way deal with time zone in the
+	    mkrndlog_normal() and mkrndlog_noip() subroutines, using
+	    gmtime($t + $tz) instead of calculating time zone offset
+	    with $tz + (timegm(localtime)-timelocal(localtime)).  This
+	    is the easy and right way to do.
+	 4. reslog.zh-tw.html, TODO.zh-tw, TODO.zh-cn: Changed
+	    '繁體中文' to '正體中文'.
+
+2007-12-02
+	 1. t/02-several.t: Added, to replace the t/04-hybrix.t.
+	 2. t/04-hybrix.t: Removed
+
+2007-12-01
+	 1. reslog: Use "use 5.008" instead of "use 5.8.0", for
+	    compatibility with older Perl, and get ride of the warning
+	    of Perl 5.10.
+
+2007-11-30
+	 1. reslog, reslog.*.html: The default keep mode in the
+	    documentation is "restart", but it is actually running
+	    "delete" in the source code and in the test suite.  The
+	    documentation is fixed to "delete" according to the
+	    actual program behavior.
+	 2. t/_helper.pm: Renamed the mkrndlog() subroutine to
+	    mkrndlog_normal().  Renamed the mknoiprndlog()
+	    subroutine to mkrndlog_noip().  Added the
+	    mkrndlog_empty() subroutine.
+	 3. reslog: Added check on whether the suffix to be appended
+	    is the same to the suffix to be trimmed.  This cause
+	    the same file be overwritten as the resolved result.
+	 4. t/01-exhaust.t: Combining t/01-plain.t, t/02-gzip.t,
+	    t/03-bzip2.t
+
+2007-11-27
+	 1. Makefile.PL, Build.PL: Clean-up old file found message.
+	 2. Makefile.PL: Added message for optional prerequisites.
+	 3. reslog.zh-tw.html, reslog.zh-cn.html: Tag the languages.
+
+2007-11-26
+	 1. t/_helper.pm, t/*.t: Updated the license to GPLv3.
+	 2. README.zh-tw, README.zh-cn: File "Changes.zh-tw" and
+	    "Changes.zh-cn" no longer exists.  Fixed as "Changes".
+	 3. fdl.txt: Added.
+	 4. MSWin32 and MS-Win32 is now written as MS-Windows in the
+	    documentation.
+	 5. reslog: Reorder the debug message in the check_gzip() and
+	    check_bzip2() methods of the _private::IO class.
+	 6. Makefile.PL, Build.PL: Fixed comment typo. ("any old files")
+	 7. Build.PL: Added "recommends" and "build_requires".
+
+2007-11-25
+	 1. reslog.en.html, INSTALL: Fixed the typo "archieve" as "archive".
+	 2. reslog: Fixed to return ref($GZIP_IO)->new instead of $GZIP_IO
+	    in the check_gzip() method, ref($BZIP2_IO)->new instead of
+	    $BZIP2_IO in the check_bzip2() method of the _private::IO class,
+	    so that a same I/O handler will not be returned to different log
+	    files.
+
+2007-11-22
+	 1. reslog: Fixed $SIG{__WARN__} to $SIG{"__WARN__"} in the
+	    parse_args() subroutine.
+
+2007-11-20
+	 1. t/_helper.pm: Added the randip() subroutine to provide random IP
+	    that has reliable reverse-lookup DNS.
+
+2007-11-19
+	 1. t/_helper.pm: Fixed the flist() subroutine to exclude non-files.
+	 2. t/_helper.pm, t/*.t: Add the prsrvsrc() subroutine to preserve the
+	    source file for debugging.
+	 3. t/_helper.pm, t/*.t: Add the cleanup() subroutine to clean-up the
+	    test directory after success or failure.
+	 4. t/*.t: Removed the strange escaping of double-quotation character
+	    of reslog path.
+
+2007-11-18
+	 1. reslog: Move the TYPE_PLAIN, TYPE_GZIP and TYPE_BZIP2 constants
+	    from the _private::LogFile package to the main package, so that
+	    other packages can use it, too.
+	 2. t/_helper.pm: Added the TYPE_PLAIN, TYPE_GZIP and TYPE_BZIP2
+	    constants for easier use.
+	 3. reslog: Clean up File::Spec::Functions references.
+	 4. Makefile.PL and Build.PL: Changed the clean-up list from "t/log/*"
+	    to "t/log*".
+
+2007-11-17
+	 1. _helper.pm: Moved rel2abs() from a method of the _private::LogFile
+	    class to a utility subroutine of the main package.  rel2abs() may
+	    be used elsewhere.
+
+2007-11-15
+	 1. UPGRADE, UPGRADE.zh-tw, UPGRADE.zh-cn: Removed the outdated file
+	    location change for version 3.02 or earlier.  The file location
+	    has changed later.  The old change is meaningless.
+	 2. UPGRADE, UPGRADE.zh-tw, UPGRADE.zh-cn: Added "perl Build.PL" to
+	    the file location change instruction.
+	 3. UPGRADE.zh-tw, UPGRADE.zh-cn: Added Chinese translation to the
+	    reason of the script name change.
+	 4. t/_helper.pm: Update the style of mkrndlog() and mknoiprndlog().
+	    Added more status, adjusting more possibility to HTTP/1.1 and
+	    status 200.  Fixed the comment that host type 1 is IP and 0 is
+	    domain name.
+	 5. t/_helper.pm: Added a random URL generator to mkrndlog() and
+	    mknoiprndlog().
+	 6. t/_helper.pm: Removed rmalldir() and mkcldir(), and replaced with
+	    mkpath() and rmtree() from File::Path.
+
+2007-11-14
+	 1. reslog: Moved the check_gzip() method and the check_bzip2() method
+	    from the _private::LogFile package to the _private::IO package,
+	    so that it can be used by other packages, and removed the $self
+	    variable.  It is not used anyway.  The 2 methods are called as
+	    static methods now.
+	 2. reslog: Renamed the new_read() method as open_read(), the
+	    new_write() method as open_write(), the new_append() method
+	    as open_append().  Replaced the strange architech that start
+	    a new instance with $ioclass, with reusing the same $io object.
+	 3. reslog: Renamed the new_read() method as open_read(), the
+	    new_write() method as open_write(), the new_append() method
+	    as open_append().  Replaced the strange architech that start
+	    a new instance with $ioclass, with reusing the same $io object.
+	 4. reslog: Changed " -- " to " - " in comment.
+	 5. reslog: Changed "Deal the ~ home directories under UNIX" to
+	    "Deal with the ~ user home directories under UNIX",
+	    "If start from user's home directory" to
+	    "If it starts from the user home directory".
+	 6. reslog: Fixed the rel2abs() method so that it use getpwuid()
+	    instead of getlogin(), and respect the HOME environment variable
+	    for the current user.
+	 7. reslog: Fixed parse_args() to treat "/dev/stdin" as STDIN on
+	    UNIX-like systems.
+	 8. reslog: Fixed parse_args() and removed the duplicated short help
+	    on Getopt::Long::GetOptions errors.
+	 9. reslog: Fixed show_progress() to reset the clean-up the start
+	    time when progress is finished.
+
+2007-07-23	version 3.12
+	Fixed the error when there is no IP to be resolved.
+	 1. reslog: Fixed the "division by zero" error when there is no IP
+	    to be resolved.
+	 2. _helper.pm: Added subroutine mknoiprndlog($) to create random log
+	    files without any IP.
+	 3. t/01-plain.t, t/02-gzip.t, t/03-bzip2.t: Added test 15 and 16 to
+	    test resolving empty log files.
+
+2007-07-23	version 3.11
+	Fixed problem with systems without useithreads, fixed bug checking
+	STDIN file type with the file program, moved files back to the Perl
+	default installation directories, and added support for installation
+	with Module::Build.
+	 1. Build.PL: Added to support installation with Module::Build.
+
+2007-07-22
+	 1. reslog.en.html: Updated "Internet Protocol" as "internet protocol"
+	    in abbreviation title.
+	 2. reslog: Fixed the new() method of the _private::LogFile::STDIN
+	    class, to run unlink0() after checking the file type, to fix the
+	    issue that file was removed before checking the file type with
+	    the file program
+	 3. reslog: Fixed _private::Resolver::Threaded, to load threads
+	    in eval() and define share() when threading is not available, in
+	    order to work with systems that are not compiled with useithreads.
+
+2007-07-22	version 3.10
+	Documentation fixes.
+	 1. Removed pod2htmd.tmp, pod2htmi.tmp from distribution.
+
+2007-07-21
+	 1. reslog.html: HTML fixes for accessibility, correct HTML character
+	    references, HTML numeric references, author information and so on.
+	 2. Changes: Version number 3.10 was updated as 3.09.  I was planning
+	    to bounce the version to 3.10, but forgot this and tagged 3.09
+	    everywhere.  Well, then let it be 3.09 anyway.
+
+2007-07-21	version 3.09
+	License updated to GPLv3, and various fixes.
+	 1. INSTALL and reslog.html: Replace Term::Size with Term::ReadKey.
+	 2. Changes.zh-tw and Changes.zh-cn: Removed.
+	 3. License updated to GPLv3.
+	 4. COPYING.zh-tw and COPYING.zh-cn: Removed since official
+	    translation of GPLv3 is not available yet.
+	 5. Removed stupid "All rights reserved" from the copyright notice.
+	    It shouldn't appear from the beginning.
+	 6. Makefile.PL: Rearranged the order, and added LICENSE and SIGN.
+
+2006-06-12
+	 1. reslog: new() method of _private::LogFile class now opens
+	    the log file and bounces there, instead of checking the log file
+	    first.  This way we will return localed system error message.
+	 2. reslog: new() method of _private::LogFile class now opens
+	    the log file in read-only mode when keep all.
+	 2. reslog: check_type() method of _private::LogFile class now returns
+	    the type instead of setting $self->{"type"}, for code readibility.
+
+2006-06-11
+	 1. reslog: new() method of _private::LogFile class now initialized
+	    STDIN with _private::LogFile::STDIN class, instead of bouncing.
+	    parse_args() subroutine does not initialize the files twice now.
+	 2. reslog: Upper-case the error messages in _private::LogFile.
+	 3. reslog: check_io() method of _private::LogFile class now returns
+	    the IO object instead of setting $self->{"io"}, for code
+	    readibility.
+	 4. reslog: Fixed _private::LogFile::STDIN::new() method that we
+	    passed an extra empty argument to tempfile().
+	 5. reslog: Fixed comment, use "handler" instead of "handle".
+
+2006-06-08
+	 1. reslog: Revised the code with my own coding standard.
+	 2. reslog: Added "bundling" to Getopt::Long::Configure().  This
+	    might introduce option-processing incompatibility.
+	 3. reslog: Replaced Term::Size and Win32::Console with Term::ReadKey.
+	    Term::ReadKey seems to be more recent and portable.
+
+2006-05-28
+	 1. INSTALL and reslog.html: Fixed the bzip2 website address.
+
+2005-05-22	version 3.08
+	Documentation fixes.
+	 1. The last update of the HTML documents are fixed.
+	 2. Changes: English change log was gone.  (Maybe lost when
+	    cut-and-paste?)  A correct one is supplied.
+
+2005-05-22	version 3.07
+	 1. reslog: No more checks on the availablility of STDIN and STDOUT,
+	    and no more dummy replacement created if not.  It was originally
+	    to solve perl.cpan.testers 202971 when running with CPANPLUS under
+	    MSWin32, duplicating closed STDIN causes errors.  But I was going
+	    the wrong way.  I was testing STDIN/STDOUT/STDRR redirection in
+	    shell backticks.  Whether CPANPLUS closes STDIN or not should be
+	    irrevelent.  It may be a issue of the shell backticks itself.
+	    Anyhow I rewrote the testing executing method and it is solve.  In
+	    fact, it's still not working when STDIN and STDOUT is unavailable.
+	    But IPC::Open3 won't work on that, too.  It should be safe to be
+	    ignored.
+	 2. t/_helper.pm: runcmd() was rewritten.  It now run the command with
+	    pipe open instead of shell backticks.  It's API is hence changed.
+	 3. t/_helper.pm: frread() and frwrite() are added to do raw file
+	    read-write.
+	 4. t/01-plain.t, t/02-gzip.t, t/03-bzip2.t, t/04-hybrix.t: Edited
+	    for the new runcmd() API.
+	 5. t/_helper.pm: Unused subroutines cp() and rm() are removed.
+	 6. t/01-plain.t, t/02-gzip.t, t/03-bzip2.t, t/04-hybrix.t: Added
+	    "use diagnostics;" to help debugging.
+	 7. Successfully tested and run under Linux 2.4 i686, Linux 2.6 i686,
+	    Linux 2.4 AMD64, FreeBSD, Solaris, MacOSX Darwin, MSWin32 and
+	    cygwin.  (Thanks to SourceForge compile farm for providing testing
+	    platforms.)
+	 8. THANKS, THANKS.zh-tw, THANKS.zh-cn: Edited.
+
+2005-05-19
+	 1. reslog: Use stat() to check whether STDIN and STDOUT are
+	    available, instead of duplicate them and check if success
+	    directly.  This avoids the problem on MacOSX Darwin where trying
+	    to duplicate unopened STDIN crashes directly instead of dies that
+	    can be caught by eval().
+	 2. t/01-plain.t, t/02-gzip.t, t/03-bzip2.t, t/04-hybrix.t: Add
+	    option -d -d -d for more debug information when failures occure.
+	 2. t/_helper.pm: Prepend the command line to the STDERR result to
+	    ease debuging.
+
+2005-05-18
+	Solaris fix.
+	 1. The file executable on Solaris does not accept file content from
+	    STDIN.  This is solved.  The target file name is passed to the
+	    file executable.  When reading from STDIN in this case, a named
+	    temporary file is created for this and deleted whenever possible.
+	 2. t/01-plain.t, t/02-gzip.t, t/03-bzip2.t, t/04-hybrix.t: Use updir
+	    for composing the script name in the old way, but not popping
+	    splitdir().  $FindBin::Bin may return a directory ended with a
+	    slash which become an empty part in splitdir. (Fedora 3 on AMD64)
+	 3. Tested on Sparc/Solaris, FreeBSD, Fedora 3 on AMD64.
+	 4. t/01-plain.t, t/02-gzip.t, t/03-bzip2.t, t/04-hybrix.t: Setting
+	    wrong testing parameter.  -t 1 should be -n 1.
+	 5. reslog: Checks on whether flock() success or not are removed.  In
+	    some specific situation flock() is simply not available.  For
+	    example, MacOSX Darwin has flock() on local file systems, but not
+	    over NFS.  It's not possible to detect and avoid all these
+	    situation.
+
+2005-05-17
+	 1. pgpkey.asc: Updated with the new identity with UTF-8 names.
+
+2005-05-16	version 3.06
+	 1. t/99-pod.t added to test the POD document with Test::Pod.
+	 2. t/01-plain.t, t/02-gzip.t, t/03-bzip2.t: Added test for failures
+	    on existing temporary files.
+	 3. t/_helper.pm: Added prevention of generating IP 127.0.0.1.
+	 4. reslog: Added package _private::Filter and move
+	    _private::Resolver::parse_line() and
+	    _private::Resolver::replace_line() there, to allow easier
+	    implementing different log file formats.  Like GeoIP, or maybe
+	    MS-Extended, in the future.
+	 5. reslog: Fixed the POD document.  Section of links L<...> should
+	    be section headings in the document, but not manpage sections.
+	    This is fixed.  Web site URLs are added to the AUTHOR section.
+	    Mailing list URL is added to the BUGS section.
+
+2005-05-15
+	Test suite fix.
+	 1. t/02-gzip.t, t/03-bzip2.t: Tests that weren't skipped when gzip or
+	    bzip2 is not available is fixed.  (perl.cpan.testers 205969)
+	 2. t/01-plain.t, t/02-gzip2.t, t/03-bzip2.t, t/04-hybrix.t: $nofile
+	    replaced $hasfile.  $nogzip replaced $hasgzip.  $nobzip2 replaced
+	    $hasbzip2.  Skipping reason supplied.
+	 3. reslog: devnull is used instead of tempfile when STDIN or STDOUT
+	    is not available.
+	 4. reslog: Not only STDIN, but all files are checked if they are
+	    specified more than once.
+	 5. t/MyHelper.pm: Subroutines thisfile(), rmalldir(), mkcldir(),
+	    fwrite(), whereis(), ftype(), flist(), mkrndlog(), randword() are
+	    added.  Subroutine readfile() is renamed as fread().  Prototype
+	    cplist() is corrected as cp().  Subroutine rm() is removed.
+	 6. t/01-plain.t, t/02-gzip2.t, t/03-bzip2.t, t/04-hybrix.t: I joined
+	    subtests together and shrinked the total number of tests.  They
+	    should be one tests anyway.  This way I can test more on the result.
+	 7. t/MyHelper.pm: flist() is added so that I can test if the resulted
+	    files list is correct.  Several subtests on whether a file exists
+	    are removed.
+	 8. t/MyHelper.pm: ftype() is added so that I can test if the resulted
+	    file format is correct.
+	 9. t/MyHelper.pm: mkrndlog() is added to generate random Apache
+	    access_log files.  No more sample log files shipped anymore.  The
+	    test result should be better, too, since the content of the test
+	    log files vary now.  The content of the shipped samples are all
+	    the same in fact.
+	10. t/MyHelper.pm: Renamed to _helper.pm, to avoid CPAN namespace
+	    pollution.
+
+2005-05-08
+	Bug fix.
+	 1. STDIN and STDERR are checked for availability first, and create
+	    dummy ones if they are not available.  This fixed the bugs that on
+	    MSWin32 when STDIN is not opened, redirecting unopened STDIN
+	    caused error.  This is the situation running "make test" in
+	    CPANPLUS.  (perl.cpan.testers 202971)
+
+2005-05-08	version 3.04
+	 1. Fixed a typo when loading File::MMagic that prevent itself from
+	    loading File::MMagic
+
+2005-05-08	version 3.03
+	 1. flock() policy is redesigned.  Now all the file handles that are
+	    not opened to ordinary files are not locked.  Lock is released when
+	    when file handle is accessed with a foreign program.  Files handles
+	    are always locked when opened to ordinary files and accessed
+	    internally, even for anonymous temporary files.  This simplified
+	    the locking problem.  How foreign programs access file handles are
+	    not an issue anymore.
+	 2. Makefile.PL: MY pacakge is added.  Makefile target "upgrade" is
+	    added to remove the old files.  constants() and manifypods()
+	    methods are added to alter the default install location.  Now we
+	    default to install to /sbin directory and as manpage section 8.
+	    That is what I want.
+	 3. BUGS and TODO section of the embedded POD document updated.
+
+2005-05-02	version 3.02
+	 1. _private::Resolver and _private::Resolver::Threaded are added.
+	    Resolver is independent from the main program so that other log
+	    file filter can use the same code with least modification (GeoIP,
+	    for example).
+	 2. Help text on temporary working file updated.
+	 3. Unsupported file format error message was using $type, which
+	    should be $_.  This is fixed.
+	 4. Test 31-39 added to test --suffix and --trim-suffix.
+	 5. Tested with cygwin.
+	 6. Quotes added to the test suite to avoid problem when make test
+	    in directories whose names may contain spaces.
+	 7. Required Perl version changed to 5.8.0.  5.7.2 is a development
+	    version.  It's meaningless to require that.
+
+2005-05-01	version 3.0102
+	 1. check_magic(), check_gzip() and check_bzip2() now check the return
+	    value of eval() directly, instead of saving it in $ok and check
+	    that.
+	 2. %CONF is introduced to save the configuration.
+	 3. $THIS_FILE, $SHORTHELP and $VERBOSE are moved from
+	    "use vars qw(...)" to "our (...)", to ease program management.
+	 4. DEFAULT_PROGBAR is introduced to handle the default display status
+	    of the progress bar.
+
+2005-05-01	version 3.0101
+	Labours' Day!
+	 1. Package name changed from ResLog to main, to avoid polluting the 
+	    CPAN namespace.
+	 2. Class names changed from ResLog::* to _private::*, to avoid
+	    polluting the CPAN namespace.
+	 3. check_io() returns an I/O interface object instead of an I/O type
+	    constant, so that the I/O handler object can be generated from it
+	    directly.  new_read(), new_write() and new_append() now returns an
+	    I/O handler object generated from the I/O interface object.
+	 4. use_flock() is added to IO::* I/O handlers to see if flock() is
+	    to be used on I/O handlers, to replace run-time checks.  Currently
+	    bzip2 on MSWin32 should not use flocks().
+	 5. The constants IO_* are removed.
+	 6. whereis() now uses ExtUtils::MakeMaker MM->maybe_command() to find
+	    the executable.  This is inspired from CPAN::FirstTime.
+
+2005-04-26
+	 1. Changes: File edited to widen line limit from 60 columns to 79
+	    columns, to ease reading.
+
+2005-04-26	version 3.01
+	Bug fix.
+	 1. --suffix and --trim-suffix was not working.  I mistakenly put
+	    $_[0] instead of $_[1] in the GetOptions() and this wasn't tested!
+	    ^^;  This is fixed.
+	 2. Correct a typo in the documentation ("rewrite" should be
+	    "rewrote").
+	 3. Fixed a mistake that Changes.zh-tw was not updated with
+	    Changes.zh-cn.
+
+2005-04-26	version 3.00
+	 1. README updated
+	 2. HTML documentation updated.
+	 3. Uploaded to CPAN.
+	 4. HTML documents updated to conform to W3C Web Content Accessibility
+	    Guide 1.0 Triple-A now.
+
+2005-04-26	version 2.9901
+	 1. INSTALL rewritten.
+	 2. UPGRADE added.
+
+2005-04-25
+	 1. Module::Signature SIGNATURE gpg signature file added.  The
+	    external gpg signature file is no longer used.
+	 2. Test suite added.
+	 3. Many bugs fixed, thanks to the test suite.
+
+2005-04-24	version 2.99
+	This is a new object-oriented version.  I rewrote the whole script
+	from an empty file.
+	 1. Rewrite everything in object-oriented style.
+	 2. ithread threading support is added.  With threading it can check
+	    several IP at the same time, dramatically reducing the time cost.
+	    This requires Perl 5.7.2 ithread support.  New option
+	    --num-threads is added for this.  You can see the effect by
+	    running with -d -d.
+	 3. Supports for running gzip executable, running Compress::Bzip2,
+	    running bzip2 executable are added.  This is the benefit of
+	    object-oriented programming.  Log entry read/write is now done
+	    through an uniformed I/O handler API.  This eased the addition of
+	    new I/O handlers.
+	 4. New option --trim-suffix is added to remove certain file name
+	    suffix before appending our suffix, so that reslog can line-up
+	    with other log file post-processers.
+	 5. file utility can be used instead of File::MMagic if that is not
+	    available.
+	 6. Term::Size is used to display the progress bar under UNIX.  Under
+	    MSWin32 Win32::Console will be used instead.  reslog can run
+	    without them, but you won't see the progress bar.
+	 7. Instead of resolving line by line, reslog now collects all the IP
+	    found on all the source log files first, resolve those IP
+	    altogether, and replace the IP with the resolved domain name in
+	    the log entries at one time.
+	 8. The script and project name changed from "reslog.pl" to "reslog".
+	    A dot "." in the project name is not valid everywhere, like
+	    SourceForge.  "reslog" is enough for a script name under UNIX.
+	    MSWin32 users won't run it with explorer file association anyway,
+	    and there is a pl2bat to turn reslog to reslog.bat.
+	 9. Installation method is changed from my own Install.PL to Perl's
+	    standard ExtUtils::MakeMaker.  Utilizing standard is a good thing.
+	    Perl's ExtUtils::MakeMaker is more portable than GNU's autoconf.
+	    As a result, reslog is installed into /usr/bin instead of
+	    /usr/sbin under UNIX.  Of course, reslog don't need installation
+	    at all. :p
+	10. Version number is changed from 3 digits (2.1.0) to 2 digits
+	    (3.00), according to the Perl module convention.
+	11. ChangeLog is renamed as Changes, as what ExtUtils::MakeMaker
+	    expects.
+
+2003-01-04
+	 1. File handler EOF read checks were fixed with defined().
+
+2002-11-13
+         1. Long statistic lines are split for easy reading.
+         2. open_src() was rewritten according to open_src() in arclog.pl, in
+            order to use comression with gzip and bzip2 binary executables.
+
+2002-11-12
+	 1. RELEASE_NOTES was renamed as ChangeLog.
+	 2. AUTHORS was added.
+	 3. THANKS was added.
+	 4. The option checking logic was rewritten.
+	 5. Fixed several places where $WORKING_SRC was not locked when
+	    created with tempfile.
+	 6. Fixed several places where spaces are between function name and
+	    its opening parenthesis, according to perlstyle(1).
+	 7. Unnecessary parenthesis after slice and catfile were removed.
+
+2002-10-28
+	 1. Fixed a bug that $WORKING_RES was not locked when opened.  But it
+	    is unlocked when closed.  On some systems (like Linux) you can
+	    request unlock on a filehandle that is not previous locked, but on
+	    some others (like MSWin32) requesting unlock on a filehande that
+	    is not previous locked will cause error.  $WORKING_RES doesn't
+	    really need locking at all.  It is an anonymous temporary file
+	    handle, that can be accessed by this same working process only.
+	    It has no risk of simultaneously writing without threading, and
+	    I'm not doing threading here.  I just lock it for a consistent
+	    programming style.  (Thanks to Chen-hsiu Huang
+	    <chenhsiu@gens.dhs.org> for reporting this.)
+
+2002-09-28
+	 1. File::MMagic and file are now used to check the file type, in
+	    addition to the file name suffix, with a more preferred order.
+	 2. check_file_type() was added to check the file types by either
+	    File::MMaagic or file.
+	 3. check_gzip() was added to check the gzip method to use.
+	 4. check_bzip2() was added to check the bzip2 method to use.
+
+2002-09-18	version 2.1.0dev2
+	SourceForge Memorial Release.  It's my first time to apply a project
+	from SourceForge.  Mostly are corrections to the documentation.
+	SourceForge's project page is added to the available download source
+	here.
+	 1. reslog.pl's official home page at Tavern IMACAT's was restored.
+	 2. The previous version was renamed from 2.1.0-dev1 to 2.1.0dev1, in
+	    order to unify the version number theme.
+	 3. The project space at SourceForge was applied.  Package files are
+	    uploaded to SourceForge now.
+	 4. Project virtual host at SourceForge was set up.
+	 5. SourceForge was added into the documentation as an official
+	    website and download source.
+	 6. Documentation were corrected.  Too many places were corrected.
+	    Ignored.
+	 7. HTML document was rewritten to accommodate
+	    XHTML 1.1 recommendation.
+
+2002-08-31	version 2.1.0dev1
+	Rewrite after almost 1 year, to be run on the newly-released Perl
+	5.8.0.
+	 1. Filehandles are now saved and passed in global named variables.
+	    This is the way it should be.  The old way (initialize the file
+	    handles by duplicate the STDIN and assign them) was just not
+	    natural.  It works in Perl 5.6.1, but not in Perl 5.8.0.  The
+	    duplicated filehandles are constants, which cannot be assigned new
+	    values.
+	 2. Indents are changed from 1 tab to 4 columns, to accommodate the
+	    Perl style guide documented in perlstyle(1).  This increases the
+	    code readability.
+	 3. File operation error handlers are now using the
+	    low-precedence logical "or", instead of "||",
+	    which is recommended in perlop(1).  Excessive
+	    parentheses in file operation functions are
+	    removed for this.
+	 4. Traditional Chinese files are now named with suffix ".zh-tw"
+	    instead of ".b5".  Simplified Chinese files are now named with
+	    suffix ".zh-cn" instead of ".gb".  This is to accommodate
+	    RFC-3066, ISO 639:1988, ISO 3166-1 for language names.
+	 5. PGP signatures of distribution files are added.
+	 6. bzip2 distribution files are added.
+
+2001-09-03	version 2.0.2
+	 1. The bug that taking file handles as private variables and modified
+	    them, was fixed.
+
+2001-09-01	version 2.0.1
+	 1. The bug that resolved cache %NAMES was not global, was fixed.  The
+	    resolved result can be pass between multiple files now.
+	 2. A bug that a hyper reference in the English document was not
+	    specified as an absolute URL, was fixed.
+
+2001-06-29	version 2.0.0
+	First public release.
+	 1. Chinese and English standard header were added.
+	 2. Getopt::Long was introduced to parse the arguments, in replace of
+	    my own argument-parsing routine.
+	 3. File::Spec::Functions was introduced to handle the pathnames.
+	 4. Cwd was introduced to obtain the current working directory.
+	 5. autoflush from IO::Handle was introduced, to autoflush STDOUT
+	    solely under debugging mode.
+	 6. File::Temp was introduced to handle the temporary working file.
+	    Processing is done on temporary working files to reduce the time
+	    occupying the source and result files.
+	 7. Compress::Zlib was used to read the compressed files.
+	 8. rel2abs() was added to convert relative paths to absolute paths.
+	 9. progress_bar() was added to display current status graphically.
+	10. res_log() was added to loop multiple files.
+	11. open_src() and save_res() to open source and save result.
+	12. POD documents was added.
+	13. Release notes was added.
+	14. Readme file was added.
+	15. GNU General Public License was added.
+	16. Installation guide was added.
+	17. Install.PL was added in the distribution.
+
+2001-01-21	version 1.3.1
+	 1. autoflush was modified to do only under debugging mode.
+	 2. Simple header was changed standard header.
+
+2001-01-07	version 1.3.0
+	 1. [current/total] was added in the detailed processing messages.
+
+2000-??-??	version 1.2.0
+	 1. Custom parse_args() was added to parse the command line arguments.
+
+2000-??-??	version 1.1.0
+	 1. "--usetmp" was added to process temporary working files.
+	 2. "--suffix" was added to alter the output suffix.
+	 3. "--debug" was added to show detailed processing messages.
+
+2000-12-22	version 1.0.0
+	First version.
