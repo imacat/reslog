@@ -1,40 +1,39 @@
 #! /usr/bin/perl -w
 # reslog: Reverse-resolve IP in Apache log files
 
-# Copyright (c) 2000-2007 imacat
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2000-2021 imacat.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# First written: 2000-12-22
+# First written: 2000/12/22
 
 package main;
 use 5.008;
 use strict;
 use warnings;
 use base qw(Exporter);
-use vars qw(@EXPORT @EXPORT_OK);
+our (@EXPORT, @EXPORT_OK);
 BEGIN {
 @EXPORT = qw();
 push @EXPORT, qw(OVERRIDE_OVERWRITE OVERRIDE_APPEND OVERRIDE_FAIL);
 push @EXPORT, qw(KEEP_ALL KEEP_RESTART KEEP_DELETE);
-push @EXPORT, qw(TYPE_PLAIN TYPE_GZIP TYPE_BZIP2);
-push @EXPORT, qw(TMP_SUFFIX whereis rel2abs);
+push @EXPORT, qw(TYPE_TEXT TYPE_GZIP TYPE_BZIP2);
+push @EXPORT, qw(TMP_SUFFIX where_is rel2abs);
 @EXPORT_OK = @EXPORT;
 # Prototype declaration
 sub main();
 sub parse_args();
-sub whereis($);
+sub where_is($);
 sub rel2abs($;$);
 }
 
@@ -49,7 +48,7 @@ use Getopt::Long qw(GetOptions);
 use IO::Handle;
 
 our ($THIS_FILE, $VERBOSE);
-use vars qw($VERSION);
+our ($VERSION);
 $THIS_FILE = basename($0);
 $VERSION = "3.16";
 $VERBOSE = 1;
@@ -66,7 +65,7 @@ use constant KEEP_RESTART => "restart";
 use constant KEEP_DELETE => "delete";
 use constant DEFAULT_KEEP => KEEP_DELETE;
 # The file types
-use constant TYPE_PLAIN => "text/plain";
+use constant TYPE_TEXT => "text/plain";
 use constant TYPE_GZIP => "application/x-gzip";
 use constant TYPE_BZIP2 => "application/x-bzip2";
 # Other constants
@@ -74,16 +73,16 @@ use constant TMP_SUFFIX => ".tmp-reslog";
 use constant DEFAULT_SUFFIX => ".resolved";
 use constant DEFAULT_STDOUT => 0;
 use constant DEFAULT_THREADS => 10;
-use constant DEFAULT_PROGBAR => 1;
+use constant DEFAULT_IS_PROGRESS_BAR => 1;
 
-our (%CONF, @LOGFILES, $RESOLVER, $PROGBAR, $STDIN, $STDOUT);
-use vars qw(%WHEREIS);
+our (%CONF, @LOGFILES, $RESOLVER, $PROGRESS_BAR, $STDIN, $STDOUT);
+our (%WHERE_IS);
 
-use vars qw($VERMSG $HELPMSG);
-our $SHORTHELP;
-$VERMSG = "$THIS_FILE v$VERSION by imacat <imacat\@mail.imacat.idv.tw>";
-$SHORTHELP = "Try `$THIS_FILE --help' for more information.";
-$HELPMSG = << "EOF";
+our ($VER_MSG, $HELP_MSG);
+our $SHORT_HELP;
+$VER_MSG = "$THIS_FILE v$VERSION by imacat <imacat\@mail.imacat.idv.tw>";
+$SHORT_HELP = "Try `$THIS_FILE --help' for more information.";
+$HELP_MSG = << "EOF";
 Usage: $THIS_FILE [options] [logfile...]
 Resolve IPs from the Apache access log.
 
@@ -122,14 +121,14 @@ EOF
 main;
 exit 0;
 
-# main: Main program
+# Main program
 sub main() {
     local ($_, %_);
-    my ($c, $t0);
-    
+    my $c;
+
     # Parse the arguments
     parse_args;
-    
+
     # Create the temporary working files
     $_->create_temp foreach @LOGFILES;
     # Read the source files to temporary working files
@@ -143,16 +142,16 @@ sub main() {
     $_->write_result foreach @LOGFILES;
     # Remove the temporary working files
     $_->remove_temp foreach @LOGFILES;
-    
+
     print STDERR "Done.  " . (time - $^T) . " seconds elapsed.\n"
         if $VERBOSE > 0;
     return;
 }
 
-# parse_args: Parse the arguments
+# Parse the arguments
 sub parse_args() {
     local ($_, %_);
-    
+
     %CONF = qw();
     # Get the arguments
     eval {
@@ -187,11 +186,11 @@ sub parse_args() {
                     "stdout|c!"=>sub { $CONF{"STDOUT"} = $_[1]; },
                     "debug|d+"=>\$VERBOSE,
                     "quiet|q"=>sub { $VERBOSE-- if $VERBOSE > 0; },
-                    "help|h"=>sub { print $HELPMSG; exit 0; },
-                    "version|v"=>sub { print "$VERMSG\n"; exit 0; });
+                    "help|h"=>sub { print $HELP_MSG; exit 0; },
+                    "version|v"=>sub { print "$VER_MSG\n"; exit 0; });
     };
-    die "$THIS_FILE: $@$SHORTHELP\n" if $@ ne "";
-    
+    die "$THIS_FILE: $@$SHORT_HELP\n" if $@ ne "";
+
     # Check the arguments
     # Arguments are log files
     @LOGFILES = qw();
@@ -200,39 +199,39 @@ sub parse_args() {
         $_ = shift @ARGV;
         # Treat /dev/stdin as - on UNIX-like systems
         $_ = "-" if $_ eq "/dev/stdin" && devnull eq "/dev/null";
-        die "$THIS_FILE: $_: You can only specify a file once\n$SHORTHELP\n"
+        die "$THIS_FILE: $_: You can only specify a file once\n$SHORT_HELP\n"
             if exists $_{$_};
         push @LOGFILES, $_;
         $_{$_} = 1;
     }
     @LOGFILES = qw(-) if @LOGFILES == 0;
-    
+
     # Save the original STDIN and STDOUT
     open $STDIN, "<&", \*STDIN          or die "$THIS_FILE: STDIN: $!";
     open $STDOUT, ">&", \*STDOUT        or die "$THIS_FILE: STDOUT: $!";
-    
+
     # Set the verbose level
     autoflush STDERR if $VERBOSE > 1;
-    $CONF{"PROGBAR"} = DEFAULT_PROGBAR;
-    $CONF{"PROGBAR"} = 0 if $VERBOSE == 0 || $VERBOSE > 2 || !-t STDERR;
-    if ($CONF{"PROGBAR"}) {
+    $CONF{"IS_PROGRESS_BAR"} = DEFAULT_IS_PROGRESS_BAR;
+    $CONF{"IS_PROGRESS_BAR"} = 0 if $VERBOSE == 0 || $VERBOSE > 2 || !-t STDERR;
+    if ($CONF{"IS_PROGRESS_BAR"}) {
         # Check if we have Term::ReadKey
-        $CONF{"PROGBAR"} = 0 unless eval { require Term::ReadKey; 1; };
+        $CONF{"IS_PROGRESS_BAR"} = 0 unless eval { require Term::ReadKey; 1; };
     }
-    
+
     # Set the default STDOUT mode
     $CONF{"STDOUT"} = DEFAULT_STDOUT if !exists $CONF{"STDOUT"};
-    # If outputing to STDOUT
+    # If writing to STDOUT
     if ($CONF{"STDOUT"}) {
         # Warn if not overwrite
-        warn "$THIS_FILE: Nonsense to override mode \"fail\" when outputing to STDOUT.\n"
+        warn "$THIS_FILE: Nonsense to override mode \"fail\" when writing to STDOUT.\n"
             if exists $CONF{"OVERRIDE"} && $CONF{"OVERRIDE"} eq OVERRIDE_FAIL;
         # Always use overwrite
         $CONF{"OVERRIDE"} = OVERRIDE_OVERWRITE;
         # Default keep mode changed to keep all
         $CONF{"KEEP"} = KEEP_ALL if !exists $CONF{"KEEP"};
     }
-    
+
     # Set the default number of threads
     if (!defined $Config::Config{"useithreads"}) {
         warn "$THIS_FILE: Threading disabled because your OS or Perl does not support it.\n"
@@ -240,7 +239,7 @@ sub parse_args() {
         $CONF{"THREADS"} = 0;
     }
     $CONF{"THREADS"} = DEFAULT_THREADS if !exists $CONF{"THREADS"};
-    
+
     # Set the default keep mode
     $CONF{"KEEP"} = DEFAULT_KEEP if !exists $CONF{"KEEP"};
     # Set the default override mode
@@ -252,48 +251,48 @@ sub parse_args() {
     # The suffix to be appended cannot be the same as the suffix to be trimmed
     die "$THIS_FILE: " . $CONF{"SUFFIX"} . ": Suffix cannot be the same as the suffix to be trimmed.\n"
         if defined $CONF{"TRIM_SUFFIX"} && $CONF{"TRIM_SUFFIX"} eq $CONF{"SUFFIX"};
-    
+
     # Initialize the resolver
     if ($CONF{"THREADS"}) {
-        $RESOLVER = new _private::Resolver::Threaded;
+        $RESOLVER = _private::Resolver::Threaded->new;
     } else {
-        $RESOLVER = new _private::Resolver;
+        $RESOLVER = _private::Resolver->new;
     }
-    
+
     # Check the log files
-    @LOGFILES = map new _private::LogFile($_), @LOGFILES;
-    
+    @LOGFILES = map _private::LogFile->new($_), @LOGFILES;
+
     return;
 }
 
-# whereis: Find an executable
+# Find an executable
 #   Code inspired from CPAN::FirstTime
-sub whereis($) {
+sub where_is($) {
     local ($_, %_);
     my ($file, $path);
     $file = $_[0];
-    return $WHEREIS{$file} if exists $WHEREIS{$file};
+    return $WHERE_IS{$file} if exists $WHERE_IS{$file};
     foreach my $dir (path) {
         print STDERR "    Checking $dir ... " if $VERBOSE > 3;
         if (defined($path = MM->maybe_command(catfile($dir, $file)))) {
             print STDERR "$path\n  found " if $VERBOSE > 3;
-            return ($WHEREIS{$file} = $path);
+            return ($WHERE_IS{$file} = $path);
         }
         print STDERR "no\n" if $VERBOSE > 3;
     }
-    return ($WHEREIS{$file} = undef);
+    return ($WHERE_IS{$file} = undef);
 }
 
-# rel2abs: Convert a relative path to an absolute path
+# Convert a relative path to an absolute path
 sub rel2abs($;$) {
     local ($_, %_);
     my ($path, $base);
     ($path, $base) = @_;
-    
+
     # Turn the base absolute
     $base = cwd unless defined $base;
     $base = rel2abs $base if !file_name_is_absolute $base;
-    
+
     # Deal with the ~ user home directories under UNIX
     if (defined $Config::Config{"d_getpwent"}) {
         @_ = splitdir($path);
@@ -318,10 +317,10 @@ sub rel2abs($;$) {
             $path = catfile @_;
         }
     }
-    
+
     # Append the current directory if relative
     $path = catfile($base, $path) unless file_name_is_absolute $path;
-    
+
     @_ = splitdir($path);           # Split into directory components
     # Add an empty filename level if last level is a directory
     push @_, "" if ($_[@_-1] eq curdir || $_[@_-1] eq updir);
@@ -341,13 +340,13 @@ sub rel2abs($;$) {
 }
 
 
-# _private::ProgressBar: The progress bar displayer
+# _private::ProgressBar: The progress bar display
 package _private::ProgressBar;
 use 5.008;
 use strict;
 use warnings;
 
-# new: Initialize the progrss bar handler
+# Initialize the progress bar handler
 sub new : method {
     local ($_, %_);
     my ($class, $self, $label, $total);
@@ -356,18 +355,18 @@ sub new : method {
     $self->{"label"} = $label;
     $self->{"total"} = $total;
     $self->{"start"} = time;
-    $self->{"lastline"} = undef;
+    $self->{"last_line"} = undef;
     require Term::ReadKey;
     return $self;
 }
 
-# update: Update the progress bar
+# Update the progress bar
 sub update : method {
     local ($_, %_);
     my ($self, $cur, $label, $width, $elapsed, $min, $sec, $bar, $line);
     ($self, $cur, $label) = @_;
     $label = $self->{"label"} if !defined $label;
-    
+
     # Not enough space for a progress bar
     return if ($width = (Term::ReadKey::GetTerminalSize())[0] - 30) < 1;
     # Calculate the elapsed time
@@ -380,11 +379,11 @@ sub update : method {
     $line = sprintf "\r%-14.14s [%-".$width."s] %3.0f%% %02d:%02d",
         $label, $bar, ($cur / $self->{"total"}) * 100, $min, $sec;
     # Print if changed
-    if (!defined $self->{"lastline"} || $self->{"lastline"} ne $line) {
+    if (!defined $self->{"last_line"} || $self->{"last_line"} ne $line) {
         # Print it
         print STDERR "\r$line";
         # Record the current line
-        $self->{"lastline"} = $line;
+        $self->{"last_line"} = $line;
     }
     # Finished
     print STDERR "\n" if $cur == $self->{"total"};
@@ -410,24 +409,24 @@ use constant MAGIC_PM => "File::MMagic";
 use constant MAGIC_EXEC => "file";
 use constant MAGIC_SUFFIX => "suffix";
 
-use vars qw($MAGIC_METHOD $MAGIC);
+our ($MAGIC_METHOD, $MAGIC);
 BEGIN {
 undef $MAGIC_METHOD;
 undef $MAGIC;
 }
 
-# new: Initialize the source log file processer
+# Initialize the source log file processor
 sub new : method {
     local ($_, %_);
     my ($class, $self, $file, $FH, $f0);
     ($class, $file) = @_;
-    
+
     # STDIN is another class
     if ($file eq "-") {
         $class .= "::STDIN";
         return $class->new(@_[1...$#_]);
     }
-    
+
     $self = bless {}, $class;
     $self->{"stdin"} = 0;
     $self->{"keep"} = $CONF{"KEEP"};
@@ -436,12 +435,12 @@ sub new : method {
     $self->{"trim_suffix"} = $CONF{"TRIM_SUFFIX"};
     $self->{"stdout"} = $CONF{"STDOUT"};
     $self->{"tmp"} = undef;
-    
+
     # Load the File::MMagic first before opening anything, or the seek
     #   method will not be loaded into IO::Handle
     $self->check_magic;
-    $self->{"checktype"} = $file if $MAGIC_METHOD eq MAGIC_EXEC;
-    
+    $self->{"check_type"} = $file if $MAGIC_METHOD eq MAGIC_EXEC;
+
     $self->{"file"} = rel2abs $file;
     ($f0, $file) = ($file, $self->{"file"});
     # Open the file
@@ -453,7 +452,7 @@ sub new : method {
         flock $FH, LOCK_EX;
     }
     $self->{"FH"} = $FH;
-    
+
     # Check the file type
     print STDERR "Checking file type of $f0 ... " if $VERBOSE > 1;
     $self->{"type"} = $self->check_type;
@@ -462,11 +461,11 @@ sub new : method {
     $self->{"io"} = $self->check_io;
     # Check the output file availability
     $self->check_output;
-    
+
     return $self;
 }
 
-# create_temp: Create the temporary working file
+# Create the temporary working file
 sub create_temp : method {
     local ($_, %_);
     my ($self, $temp, $FHT);
@@ -480,7 +479,7 @@ sub create_temp : method {
     return $FHT;
 }
 
-# remove_temp: Remove the temporary working file
+# Remove the temporary working file
 sub remove_temp : method {
     local ($_, %_);
     my ($self, $temp, $FHT);
@@ -493,7 +492,7 @@ sub remove_temp : method {
     return;
 }
 
-# read_source: Read the source file
+# Read the source file
 sub read_source : method {
     local ($_, %_);
     my ($self, $file, $FHT, $count);
@@ -515,7 +514,7 @@ sub read_source : method {
     return $count;;
 }
 
-# write_result: Write the result file
+# Write the result file
 sub write_result : method {
     local ($_, %_);
     my ($self, $file, $FHT, $FH, $count);
@@ -528,7 +527,7 @@ sub write_result : method {
         flock $FH, LOCK_EX;
     }
     if ($self->{"override"} eq OVERRIDE_OVERWRITE) {
-        print STDERR "Outputing to $file ... " if $VERBOSE > 1;
+        print STDERR "Writing to $file ... " if $VERBOSE > 1;
         print STDERR "\n" if $VERBOSE > 2;
         $self->{"io"}->open_write($file, $FH);
     } else {
@@ -536,7 +535,7 @@ sub write_result : method {
         print STDERR "\n" if $VERBOSE > 2;
         $self->{"io"}->open_append($file, $FH);
     }
-    print STDERR "  Outputing result records ... " if $VERBOSE > 2;
+    print STDERR "  Writing result records ... " if $VERBOSE > 2;
     seek $FHT, 0, SEEK_SET              or die "$THIS_FILE: $!";
     $count = 0;
     while (defined($_ = <$FHT>)) {
@@ -549,18 +548,18 @@ sub write_result : method {
     return $count;;
 }
 
-# check_type: Check the source file type
+# Check the source file type
 sub check_type : method {
     local ($_, %_);
     my ($self, $file, $FH, $PH, $CMD);
     $self = $_[0];
     ($file, $FH) = ($self->{"file"}, $self->{"FH"});
-    
+
     # Check the file type checker to use
     $self->check_magic;
     die "$THIS_FILE: Cannot check STDIN from the filename suffix.\n"
         if $self->{"stdin"} && $MAGIC_METHOD eq MAGIC_SUFFIX;
-    
+
     # Check by file name suffix
     # Check by file name suffix on empty files, too.
     # Compress::Bzip2 2 creates empty files that confuses further processing.
@@ -568,19 +567,19 @@ sub check_type : method {
         return TYPE_GZIP if $file =~ /\.gz$/;
         return TYPE_BZIP2 if $file =~ /\.bz2$/;
         # Otherwise we assume it to be text/plain
-        return TYPE_PLAIN;
+        return TYPE_TEXT;
     }
-    
+
     # Check the file format
     # Check by File::MMagic
     if ($MAGIC_METHOD eq MAGIC_PM) {
         $_ = $MAGIC->checktype_filehandle($FH);
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
-    
+
     # Check by the file program
     } elsif ($MAGIC_METHOD eq MAGIC_EXEC) {
         flock $FH, LOCK_UN;
-        @_ = ($MAGIC, $self->{"checktype"});
+        @_ = ($MAGIC, $self->{"check_type"});
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
         $CMD = join " ", @_;
         # Start the process
@@ -597,15 +596,15 @@ sub check_type : method {
             flock $FH, LOCK_EX;
         }
     }
-    
+
     # Check the returned file type text
     return TYPE_GZIP if /gzip/i;
     return TYPE_BZIP2 if /bzip2/i;
     # Default everything to text/plain
-    return TYPE_PLAIN;
+    return TYPE_TEXT;
 }
 
-# check_io: Check the I/O handler to use
+# Check the I/O handler to use
 sub check_io : method {
     local ($_, %_);
     my $self;
@@ -618,12 +617,12 @@ sub check_io : method {
     return _private::IO::Plain->new;
 }
 
-# check_output: Check the availability of the output file
+# Check the availability of the output file
 sub check_output : method {
     local ($_, %_);
-    my ($self, $file, $dir, $suf, $temp, $FHT);
+    my ($self, $file, $dir, $suf);
     $self = $_[0];
-    
+
     if ($self->{"type"} eq TYPE_GZIP) {
         ($file, $dir, $suf) = fileparse $self->{"file"}, ".gz";
     } elsif ($self->{"type"} eq TYPE_BZIP2) {
@@ -635,38 +634,38 @@ sub check_output : method {
     # Trim the suffix to be removed
     ($file, $dir) = fileparse $dir . $file, $self->{"trim_suffix"}
         if defined $self->{"trim_suffix"};
-    
+
     # Is its directory writable?  We need to create the temporary working
-    # file and possibly the ouput file there.
-    die "$THIS_FILE: $dir: Permission denied\n$SHORTHELP\n"
+    # file and possibly the output file there.
+    die "$THIS_FILE: $dir: Permission denied\n$SHORT_HELP\n"
         if !-w $dir;
-    
+
     # Check the temporary working file
     $self->{"temp"} = $dir . $file . TMP_SUFFIX;
     $_ = $self->{"temp"};
     # Does the temporary working file exists?
-    die "$THIS_FILE: $_: Temporary working file exists\n$SHORTHELP\n"
+    die "$THIS_FILE: $_: Temporary working file exists\n$SHORT_HELP\n"
         if -e $_;
-    
+
     # Check the output file
     # STDOUT
     if ($self->{"stdout"}) {
         $self->{"output"} = undef;
         # STDOUT - always overwrite it
         $self->{"override"} = OVERRIDE_OVERWRITE;
-    
+
     # Ordinary output file
     } else {
         $self->{"output"} = $dir . $file . $self->{"suffix"} . $suf;
         # Output exists - is it writable?
         if (-e $self->{"output"}) {
-            die "$THIS_FILE: " . $self->{"output"} . ": File exists\n$SHORTHELP\n"
+            die "$THIS_FILE: " . $self->{"output"} . ": File exists\n$SHORT_HELP\n"
                 if $self->{"override"} eq OVERRIDE_FAIL;
-            die "$THIS_FILE: " . $self->{"output"} . ": Not a file\n$SHORTHELP\n"
+            die "$THIS_FILE: " . $self->{"output"} . ": Not a file\n$SHORT_HELP\n"
                 if !-f $self->{"output"};
-            die "$THIS_FILE: " . $self->{"output"} . ": Permission denied\n$SHORTHELP\n"
+            die "$THIS_FILE: " . $self->{"output"} . ": Permission denied\n$SHORT_HELP\n"
                 if !-w $self->{"output"};
-        
+
         # Output does not exist - always overwrite it
         } else {
             $self->{"override"} = OVERRIDE_OVERWRITE;
@@ -675,15 +674,15 @@ sub check_output : method {
     return;
 }
 
-# check_magic: Check the file type checker to use
+# Check the file type checker to use
 sub check_magic : method {
     local ($_, %_);
     my $self;
     $self = $_[0];
-    
+
     # Checked before
     return $MAGIC_METHOD if defined $MAGIC_METHOD;
-    
+
     print STDERR "Checking file type checker to use ... " if $VERBOSE > 1;
     print STDERR "\n  Checking File::MMagic ... " if $VERBOSE > 2;
     # Check if we have File::MMagic
@@ -697,11 +696,11 @@ sub check_magic : method {
     print STDERR "no\n" if $VERBOSE > 2;
     $@ =~ s/^(Can't locate \S+ in \@INC).*\n/$1\n/;     # '
     warn "$@" if $VERBOSE == 1;
-    
+
     # Looking for file from PATH
     print STDERR "  Checking file ... " if $VERBOSE > 2;
     # Found in PATH
-    if (defined($MAGIC = whereis "file")) {
+    if (defined($MAGIC = where_is "file")) {
         print STDERR "$MAGIC\nfound " if $VERBOSE > 2;
         print STDERR "$MAGIC\n" if $VERBOSE > 1;
         warn "$THIS_FILE: We will check with $MAGIC instead\n"
@@ -710,7 +709,7 @@ sub check_magic : method {
     }
     # Not found
     print STDERR "no\n" if $VERBOSE > 2;
-    
+
     # Check by file name suffix
     print STDERR "  Fall back using file name suffix instead\n" if $VERBOSE > 2;
     print STDERR "file name suffix\n" if $VERBOSE > 1;
@@ -734,15 +733,15 @@ use IO::Handle;
 use Fcntl qw(:flock :seek);
 use File::Temp qw(tempfile unlink0);
 
-# new: Initialize the source log file processer
+# Initialize the source log file processor
 sub new : method {
     local ($_, %_);
     my ($class, $self, $file, $FH, $tmp);
     ($class, $file) = @_;
-    
+
     # We only initialize STDIN
     return $file if ref($file) ne "" || $file ne "-";
-    
+
     $self = bless {}, $class;
     $self->{"stdin"} = 1;
     $self->{"keep"} = KEEP_ALL;
@@ -751,17 +750,17 @@ sub new : method {
     $self->{"trim_suffix"} = undef;
     $self->{"stdout"} = 1;
     $self->{"tmp"} = undef;
-    
+
     # Load the File::MMagic first before opening anything, or the seek
     #   method will not be loaded into IO::Handle
     $self->check_magic;
-    
+
     # Save STDIN to somewhere
     $file = "the STDIN buffer";
     if ($_private::LogFile::MAGIC_METHOD eq _private::LogFile::MAGIC_EXEC) {
         ($FH, $tmp) = tempfile(undef, UNLINK => 1)
                                         or die "$THIS_FILE: tempfile: $!";
-        $self->{"checktype"} = $tmp;
+        $self->{"check_type"} = $tmp;
         $self->{"tmp"} = $tmp;
     } else {
         undef $tmp;
@@ -775,7 +774,7 @@ sub new : method {
     }
     seek $FH, 0, SEEK_SET               or die "$THIS_FILE: $file: $!";
     print STDERR "done\n" if $VERBOSE > 1;
-    
+
     # Check the file type
     print STDERR "Checking file type of STDIN ... " if $VERBOSE > 1;
     $self->{"type"} = $self->check_type;
@@ -784,16 +783,16 @@ sub new : method {
     $self->{"io"} = $self->check_io;
     # Set the output file
     $self->{"output"} = undef;
-    
+
     # Unlink the temporarily working file first
     if ($_private::LogFile::MAGIC_METHOD eq _private::LogFile::MAGIC_EXEC) {
         unlink0($FH, $tmp)              or die "$THIS_FILE: $tmp: $!";
     }
-    
+
     return $self;
 }
 
-# create_temp: Create the temporary working file
+# Create the temporary working file
 sub create_temp : method {
     local ($_, %_);
     $_ = $_[0];
@@ -804,7 +803,7 @@ sub create_temp : method {
     return $_->{"FHT"};
 }
 
-# remove_temp: Remove the temporary working file
+# Remove the temporary working file
 sub remove_temp : method {
     local ($_, %_);
     $_ = $_[0];
@@ -824,22 +823,22 @@ BEGIN {
 import main;
 }
 
-use vars qw($GZIP_IO $BZIP2_IO);
+our ($GZIP_IO, $BZIP2_IO);
 BEGIN {
 undef $GZIP_IO;
 undef $BZIP2_IO;
 }
 
-# new: Initialize the I/O handler interface
+# Initialize the I/O handler interface
 sub new : method { bless {}, $_[0]; }
 
-# check_gzip: Check for compression method of gzip
+# Check for compression method of gzip
 sub check_gzip : method {
     local ($_, %_);
-    
+
     # Checked before
     return ref($GZIP_IO)->new if defined $GZIP_IO;
-    
+
     # See whether Compress::Zlib or gzip
     print STDERR "Checking gzip I/O handler to use ... " if $VERBOSE > 1;
     print STDERR "\n  Checking Compress::Zlib ... " if $VERBOSE > 2;
@@ -852,29 +851,29 @@ sub check_gzip : method {
     # Not found
     print STDERR "no\n" if $VERBOSE > 2;
     # It's OK not to warn
-    
+
     # Looking for gzip from PATH
     print STDERR "  Checking gzip... " if $VERBOSE > 2;
     # Found in PATH
-    if (defined($_ = whereis "gzip")) {
+    if (defined($_ = where_is "gzip")) {
         print STDERR "$_\nfound " if $VERBOSE > 2;
         print STDERR "$_\n" if $VERBOSE > 1;
         return ($GZIP_IO = _private::IO::Gzip::Exec->new);
     }
     # Not found
     print STDERR "no\n" if $VERBOSE > 2;
-    
+
     print STDERR "not found\n" if $VERBOSE > 1;
-    die "$THIS_FILE: Necessary Compress::Zlib or gzip not available.\n$SHORTHELP\n";
+    die "$THIS_FILE: Necessary Compress::Zlib or gzip not available.\n$SHORT_HELP\n";
 }
 
-# check_bzip2: Check for compression method of bzip2
+# Check for compression method of bzip2
 sub check_bzip2 : method {
     local ($_, %_);
-    
+
     # Checked before
     return ref($BZIP2_IO)->new if defined $BZIP2_IO;
-    
+
     # See whether Compress::Bzip2 or bzip2
     print STDERR "Checking bzip2 I/O handler to use ... " if $VERBOSE > 1;
     print STDERR "\n  Checking Compress::Bzip2 ... " if $VERBOSE > 2;
@@ -887,20 +886,20 @@ sub check_bzip2 : method {
     # Not found
     print STDERR "no\n" if $VERBOSE > 2;
     # It's OK not to warn
-    
+
     # Looking for bzip2 from PATH
     print STDERR "  Checking bzip2... " if $VERBOSE > 2;
     # Found in PATH
-    if (defined($_ = whereis "bzip2")) {
+    if (defined($_ = where_is "bzip2")) {
         print STDERR "$_\nfound " if $VERBOSE > 2;
         print STDERR "$_\n" if $VERBOSE > 1;
         return ($BZIP2_IO = _private::IO::Bzip2::Exec->new);
     }
     # Not found
     print STDERR "no\n" if $VERBOSE > 2;
-    
+
     print STDERR "not found\n" if $VERBOSE > 1;
-    die "$THIS_FILE: Necessary Compress::Bzip2 or bzip2 not available.\n$SHORTHELP\n";
+    die "$THIS_FILE: Necessary Compress::Bzip2 or bzip2 not available.\n$SHORT_HELP\n";
 }
 
 
@@ -916,7 +915,7 @@ import main;
 
 use Fcntl qw(:flock :seek);
 
-# open_read: Open the file for reading
+# Open the file for reading
 sub open_read : method {
     local ($_, %_);
     my ($self, $file, $FH);
@@ -932,7 +931,7 @@ sub open_read : method {
     return;
 }
 
-# open_write: Open the file for writing
+# Open the file for writing
 sub open_write : method {
     local ($_, %_);
     my ($self, $file, $FH);
@@ -948,7 +947,7 @@ sub open_write : method {
     return;
 }
 
-# open_append: Open the file for appending
+# Open the file for appending
 sub open_append : method {
     local ($_, %_);
     my ($self, $file, $FH);
@@ -964,7 +963,7 @@ sub open_append : method {
     return;
 }
 
-# readline: Read a line from the I/O stream
+# Read a line from the I/O stream
 sub readline : method {
     local ($_, %_);
     my ($self, $FH);
@@ -973,7 +972,7 @@ sub readline : method {
     return <$FH>;
 }
 
-# write: Output data to the I/O stream
+# Output data to the I/O stream
 sub write : method {
     local ($_, %_);
     my ($self, $file, $FH);
@@ -983,14 +982,14 @@ sub write : method {
     return;
 }
 
-# close: Close the I/O stream
+# Close the I/O stream
 sub close : method {
     local ($_, %_);
     my ($self, $keep, $tmp, $file, $FH);
     ($self, $keep, $tmp) = @_;
     $keep = KEEP_ALL if @_ < 2;
     ($file, $FH) = ($self->{"file"}, $self->{"FH"});
-    
+
     # Restart the file
     if ($keep eq KEEP_RESTART) {
         # Empty the source file
@@ -998,13 +997,12 @@ sub close : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-    
     }
-    
+
     CORE::close $FH                     or die "$THIS_FILE: $file: $!";
     delete $self->{"FH"};
     delete $self->{"file"};
-    
+
     # Delete the file
     if ($keep eq KEEP_DELETE) {
         print STDERR "  Deleting file ... " if $VERBOSE > 2;
@@ -1032,7 +1030,7 @@ import main;
 use Fcntl qw(:flock :seek);
 use File::Temp qw(tempfile);
 
-# open_read: Open the file for reading
+# Open the file for reading
 sub open_read : method {
     local ($_, %_);
     my ($self, $file, $FH);
@@ -1053,7 +1051,7 @@ sub open_read : method {
     return;
 }
 
-# open_write: Open the file for writing
+# Open the file for writing
 sub open_write : method {
     local ($_, %_);
     my ($self, $file, $FH);
@@ -1074,7 +1072,7 @@ sub open_write : method {
     return;
 }
 
-# open_append: Open the file for appending
+# Open the file for appending
 sub open_append : method {
     local ($_, %_);
     my ($self, $file, $FH, $gz);
@@ -1089,7 +1087,7 @@ sub open_append : method {
     }
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
     import Compress::Zlib qw(gzopen);
-    
+
     # Save the original data if file has content so that file size is
     # greater than 0.  STDOUT is always of size 0.
     if ((stat $FH)[7] > 0) {
@@ -1107,7 +1105,7 @@ sub open_append : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         # Decompress the buffer and save to our file
         print STDERR "  Attaching buffer with gzopen(..., \"rb\") ... " if $VERBOSE > 2;
         $gzt = gzopen($FHT, "rb")       or die "$THIS_FILE: tempfile: $!";
@@ -1115,7 +1113,7 @@ sub open_append : method {
         print STDERR "  Attaching file with gzopen(..., \"wb9\") ... " if $VERBOSE > 2;
         $gz = gzopen($FH, "wb9")        or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         print STDERR "  Reading old records back from the buffer ... " if $VERBOSE > 2;
         $count = 0;
         while (($n = $gzt->gzreadline($_)) != 0) {
@@ -1125,19 +1123,19 @@ sub open_append : method {
         }
         close $FHT                      or die "$THIS_FILE: tempfile: $!";
         print STDERR "$count records\n" if $VERBOSE > 2;
-    
+
     # A whole new file
     } else {
         print STDERR "  Attaching file with gzopen(..., \"wb9\") ... " if $VERBOSE > 2;
         $gz = gzopen($FH, "wb9")        or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
     }
-    
+
     $self->{"gz"} = $gz;
     return;
 }
 
-# readline: Read a line from the I/O stream
+# Read a line from the I/O stream
 sub readline : method {
     local ($_, %_);
     my ($self, $file, $gz, $n);
@@ -1148,7 +1146,7 @@ sub readline : method {
     return $_;
 }
 
-# write: Output data to the I/O stream
+# Output data to the I/O stream
 sub write : method {
     local ($_, %_);
     my ($self, $file, $gz);
@@ -1158,14 +1156,14 @@ sub write : method {
     return;
 }
 
-# close: Close the I/O stream
+# Close the I/O stream
 sub close : method {
     local ($_, %_);
     my ($self, $keep, $tmp, $file, $FH, $gz);
     ($self, $keep, $tmp) = @_;
     $keep = KEEP_ALL if @_ < 2;
     ($file, $FH, $gz) = ($self->{"file"}, $self->{"FH"}, $self->{"gz"});
-    
+
     # Restart the file
     if ($keep eq KEEP_RESTART) {
         # Empty the source file
@@ -1173,7 +1171,7 @@ sub close : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         # Create empty compressed content
         print STDERR "  Applying empty compressed content ... " if $VERBOSE > 2;
         $_ = gzopen($FH, "wb9")         or die "$THIS_FILE: $file: $!";
@@ -1182,7 +1180,7 @@ sub close : method {
         undef $gz;
         print STDERR "done\n" if $VERBOSE > 2;
     }
-    
+
     if (defined $gz) {
         $gz->gzclose                    and die "$THIS_FILE: $file: " . $gz->gzerror;
     }
@@ -1190,7 +1188,7 @@ sub close : method {
     delete $self->{"gz"};
     delete $self->{"FH"};
     delete $self->{"file"};
-    
+
     # Delete the file
     if ($keep eq KEEP_DELETE) {
         print STDERR "  Deleting file ... " if $VERBOSE > 2;
@@ -1218,12 +1216,12 @@ import main;
 use Fcntl qw(:flock :seek);
 use File::Temp qw(tempfile);
 
-use vars qw($EXEC);
+our ($EXEC);
 BEGIN {
 undef $EXEC;
 }
 
-# open_read: Open the file for reading
+# Open the file for reading
 sub open_read : method {
     local ($_, %_);
     my ($self, $file, $FH, $PH, $CMD);
@@ -1238,8 +1236,8 @@ sub open_read : method {
         flock $FH, LOCK_UN;
     }
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
-    $EXEC = whereis "gzip" if !defined $EXEC;
-    
+    $EXEC = where_is "gzip" if !defined $EXEC;
+
     @_ = ($EXEC, "-cdf");
     @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
     $CMD = join " ", @_;
@@ -1259,7 +1257,7 @@ sub open_read : method {
     return;
 }
 
-# open_write: Open the file for writing
+# Open the file for writing
 sub open_write : method {
     local ($_, %_);
     my ($self, $file, $FH, $PH, $CMD);
@@ -1274,8 +1272,8 @@ sub open_write : method {
         flock $FH, LOCK_UN;
     }
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
-    $EXEC = whereis "gzip" if !defined $EXEC;
-    
+    $EXEC = where_is "gzip" if !defined $EXEC;
+
     @_ = ($EXEC, "-c9f");
     @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
     $CMD = join " ", @_;
@@ -1295,7 +1293,7 @@ sub open_write : method {
     return;
 }
 
-# open_append: Open the file for appending
+# Open the file for appending
 sub open_append : method {
     local ($_, %_);
     my ($self, $file, $FH, $PH, $CMD);
@@ -1310,8 +1308,8 @@ sub open_append : method {
         flock $FH, LOCK_UN;
     }
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
-    $EXEC = whereis "gzip" if !defined $EXEC;
-    
+    $EXEC = where_is "gzip" if !defined $EXEC;
+
     # Save the original data if file has content so that file size is
     # greater than 0.  STDOUT is always of size 0.
     if ((stat $FH)[7] > 0) {
@@ -1329,7 +1327,7 @@ sub open_append : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         # Decompress the buffer and save to our file
         @_ = ($EXEC, "-cdf");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
@@ -1346,7 +1344,7 @@ sub open_append : method {
         # Restore STDIN
         open STDIN, "<&", $STDIN        or die "$THIS_FILE: STDIN: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         @_ = ($EXEC, "-c9f");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
         $CMD = join " ", @_;
@@ -1362,7 +1360,7 @@ sub open_append : method {
         # Restore STDOUT
         open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         print STDERR "  Reading old records back from the buffer ... " if $VERBOSE > 2;
         $count = 0;
         while (defined($_ = <$PHT>)) {
@@ -1372,7 +1370,7 @@ sub open_append : method {
         close $PHT                      or die "$THIS_FILE: $CMDT: $!";
         close $FHT                      or die "$THIS_FILE: tempfile: $!";
         print STDERR "$count records\n" if $VERBOSE > 2;
-    
+
     # A whole new file
     } else {
         @_ = ($EXEC, "-c9f");
@@ -1391,12 +1389,12 @@ sub open_append : method {
         open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
         print STDERR "done\n" if $VERBOSE > 2;
     }
-    
+
     ($self->{"CMD"}, $self->{"PH"}) = ([@_], $PH);
     return;
 }
 
-# readline: Read a line from the I/O stream
+# Read a line from the I/O stream
 sub readline : method {
     local ($_, %_);
     my ($self, $PH);
@@ -1405,7 +1403,7 @@ sub readline : method {
     return <$PH>;
 }
 
-# write: Output data to the I/O stream
+# Output data to the I/O stream
 sub write : method {
     local ($_, %_);
     my ($self, $CMD, $PH);
@@ -1415,14 +1413,14 @@ sub write : method {
     return;
 }
 
-# close: Close the I/O stream
+# Close the I/O stream
 sub close : method {
     local ($_, %_);
     my ($self, $keep, $tmp, $file, $FH, $CMD, $PH);
     ($self, $keep, $tmp) = @_;
     $keep = KEEP_ALL if @_ < 2;
     ($file, $FH) = ($self->{"file"}, $self->{"FH"});
-    
+
     # Restart the file
     if ($keep eq KEEP_RESTART) {
         # Empty the source file
@@ -1430,10 +1428,10 @@ sub close : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         # Create empty compressed content
         print STDERR "  Applying empty compressed content ... " if $VERBOSE > 2;
-        $EXEC = whereis "gzip" if !defined $EXEC;
+        $EXEC = where_is "gzip" if !defined $EXEC;
         @_ = ($EXEC, "-c9f");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
         $CMD = join " ", @_;
@@ -1450,7 +1448,7 @@ sub close : method {
         open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
         print STDERR "done\n" if $VERBOSE > 2;
     }
-    
+
     ($CMD, $PH) = (join(" ", @{$self->{"CMD"}}), $self->{"PH"});
     CORE::close $PH                     or die "$THIS_FILE: $CMD: $!";
     CORE::close $FH                     or die "$THIS_FILE: $file: $!";
@@ -1458,7 +1456,7 @@ sub close : method {
     delete $self->{"CMD"};
     delete $self->{"FH"};
     delete $self->{"file"};
-    
+
     # Delete the file
     if ($keep eq KEEP_DELETE) {
         print STDERR "  Deleting file ... " if $VERBOSE > 2;
@@ -1486,7 +1484,7 @@ import main;
 use Fcntl qw(:flock :seek);
 use File::Temp qw(tempfile);
 
-# open_read: Open the file for reading
+# Open the file for reading
 sub open_read : method {
     local ($_, %_);
     my ($self, $file, $FH);
@@ -1507,7 +1505,7 @@ sub open_read : method {
     return;
 }
 
-# open_write: Open the file for writing
+# Open the file for writing
 sub open_write : method {
     local ($_, %_);
     my ($self, $file, $FH);
@@ -1528,7 +1526,7 @@ sub open_write : method {
     return;
 }
 
-# open_append: Open the file for appending
+# Open the file for appending
 sub open_append : method {
     local ($_, %_);
     my ($self, $file, $FH, $bz);
@@ -1543,7 +1541,7 @@ sub open_append : method {
     }
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
     import Compress::Bzip2 qw(bzopen);
-    
+
     # Save the original data if file has content so that file size is
     # greater than 0.  STDOUT is always of size 0.
     if ((stat $FH)[7] > 0) {
@@ -1561,7 +1559,7 @@ sub open_append : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         # Decompress the buffer and save to our file
         print STDERR "  Attaching buffer with bzopen(..., \"rb\") ... " if $VERBOSE > 2;
         $bzt = bzopen($FHT, "rb")       or die "$THIS_FILE: tempfile: $!";
@@ -1569,7 +1567,7 @@ sub open_append : method {
         print STDERR "  Attaching file with bzopen(..., \"wb9\") ... " if $VERBOSE > 2;
         $bz = bzopen($FH, "wb9")        or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         print STDERR "  Reading old records back from the buffer ... " if $VERBOSE > 2;
         $count = 0;
         while (($n = $bzt->bzreadline($_)) != 0) {
@@ -1580,19 +1578,19 @@ sub open_append : method {
         }
         close $FHT                      or die "$THIS_FILE: tempfile: $!";
         print STDERR "$count records\n" if $VERBOSE > 2;
-    
+
     # A whole new file
     } else {
         print STDERR "  Attaching file with bzopen(..., \"wb9\") ... " if $VERBOSE > 2;
         $bz = bzopen($FH, "wb9")        or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
     }
-    
+
     $self->{"bz"} = $bz;
     return;
 }
 
-# readline: Read a line from the I/O stream
+# Read a line from the I/O stream
 sub readline : method {
     local ($_, %_);
     my ($self, $file, $bz, $n);
@@ -1603,7 +1601,7 @@ sub readline : method {
     return $_;
 }
 
-# write: Output data to the I/O stream
+# Output data to the I/O stream
 sub write : method {
     local ($_, %_);
     my ($self, $file, $bz);
@@ -1614,14 +1612,14 @@ sub write : method {
     return;
 }
 
-# close: Close the I/O stream
+# Close the I/O stream
 sub close : method {
     local ($_, %_);
     my ($self, $keep, $tmp, $file, $FH, $bz);
     ($self, $keep, $tmp) = @_;
     $keep = KEEP_ALL if @_ < 2;
     ($file, $FH, $bz) = ($self->{"file"}, $self->{"FH"}, $self->{"bz"});
-    
+
     # Restart the file
     if ($keep eq KEEP_RESTART) {
         # Empty the source file
@@ -1629,7 +1627,7 @@ sub close : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         # Create empty compressed content
         print STDERR "  Applying empty compressed content ... " if $VERBOSE > 2;
         $_ = bzopen($FH, "wb9")         or die "$THIS_FILE: $file: $!";
@@ -1638,7 +1636,7 @@ sub close : method {
         undef $bz;
         print STDERR "done\n" if $VERBOSE > 2;
     }
-    
+
     if (defined $bz) {
         $bz->bzclose                    and die "$THIS_FILE: $file: " . $bz->bzerror;
     }
@@ -1646,7 +1644,7 @@ sub close : method {
     delete $self->{"bz"};
     delete $self->{"FH"};
     delete $self->{"file"};
-    
+
     # Delete the file
     if ($keep eq KEEP_DELETE) {
         print STDERR "  Deleting file ... " if $VERBOSE > 2;
@@ -1674,12 +1672,12 @@ import main;
 use Fcntl qw(:flock :seek);
 use File::Temp qw(tempfile);
 
-use vars qw($EXEC);
+our ($EXEC);
 BEGIN {
 undef $EXEC;
 }
 
-# open_read: Open the file for reading
+# Open the file for reading
 sub open_read : method {
     local ($_, %_);
     my ($self, $file, $FH, $PH, $CMD);
@@ -1694,8 +1692,8 @@ sub open_read : method {
         flock $FH, LOCK_UN;
     }
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
-    $EXEC = whereis "bzip2" if !defined $EXEC;
-    
+    $EXEC = where_is "bzip2" if !defined $EXEC;
+
     @_ = ($EXEC, "-cdf");
     @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
     $CMD = join " ", @_;
@@ -1715,7 +1713,7 @@ sub open_read : method {
     return;
 }
 
-# open_write: Open the file for writing
+# Open the file for writing
 sub open_write : method {
     local ($_, %_);
     my ($self, $file, $FH, $PH, $CMD);
@@ -1730,8 +1728,8 @@ sub open_write : method {
         flock $FH, LOCK_UN;
     }
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
-    $EXEC = whereis "bzip2" if !defined $EXEC;
-    
+    $EXEC = where_is "bzip2" if !defined $EXEC;
+
     @_ = ($EXEC, "-9f");
     @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
     $CMD = join " ", @_;
@@ -1751,7 +1749,7 @@ sub open_write : method {
     return;
 }
 
-# open_append: Open the file for appending
+# Open the file for appending
 sub open_append : method {
     local ($_, %_);
     my ($self, $file, $FH, $PH, $CMD);
@@ -1766,8 +1764,8 @@ sub open_append : method {
         flock $FH, LOCK_UN;
     }
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
-    $EXEC = whereis "bzip2" if !defined $EXEC;
-    
+    $EXEC = where_is "bzip2" if !defined $EXEC;
+
     # Save the original data if file has content so that file size is
     # greater than 0.  STDOUT is always of size 0.
     if ((stat $FH)[7] > 0) {
@@ -1785,7 +1783,7 @@ sub open_append : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         # Decompress the buffer and save to our file
         @_ = ($EXEC, "-cdf");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
@@ -1802,7 +1800,7 @@ sub open_append : method {
         # Restore STDIN
         open STDIN, "<&", $STDIN        or die "$THIS_FILE: STDIN: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         @_ = ($EXEC, "-9f");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
         $CMD = join " ", @_;
@@ -1818,7 +1816,7 @@ sub open_append : method {
         # Restore STDOUT
         open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         print STDERR "  Reading old records back from the buffer ... " if $VERBOSE > 2;
         $count = 0;
         while (defined($_ = <$PHT>)) {
@@ -1828,7 +1826,7 @@ sub open_append : method {
         close $PHT                      or die "$THIS_FILE: $CMDT: $!";
         close $FHT                      or die "$THIS_FILE: tempfile: $!";
         print STDERR "$count records\n" if $VERBOSE > 2;
-    
+
     # A whole new file
     } else {
         @_ = ($EXEC, "-9f");
@@ -1847,12 +1845,12 @@ sub open_append : method {
         open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
         print STDERR "done\n" if $VERBOSE > 2;
     }
-    
+
     ($self->{"CMD"}, $self->{"PH"}) = ([@_], $PH);
     return;
 }
 
-# readline: Read a line from the I/O stream
+# Read a line from the I/O stream
 sub readline : method {
     local ($_, %_);
     my ($self, $PH);
@@ -1861,7 +1859,7 @@ sub readline : method {
     return <$PH>;
 }
 
-# write: Output data to the I/O stream
+# Output data to the I/O stream
 sub write : method {
     local ($_, %_);
     my ($self, $CMD, $PH);
@@ -1871,14 +1869,14 @@ sub write : method {
     return;
 }
 
-# close: Close the I/O stream
+# Close the I/O stream
 sub close : method {
     local ($_, %_);
     my ($self, $keep, $tmp, $file, $FH, $CMD, $PH);
     ($self, $keep, $tmp) = @_;
     $keep = KEEP_ALL if @_ < 2;
     ($file, $FH) = ($self->{"file"}, $self->{"FH"});
-    
+
     # Restart the file
     if ($keep eq KEEP_RESTART) {
         my ($CMD, $PH);
@@ -1887,10 +1885,10 @@ sub close : method {
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
         print STDERR "done\n" if $VERBOSE > 2;
-        
+
         # Create empty compressed content
         print STDERR "  Applying empty compressed content ... " if $VERBOSE > 2;
-        $EXEC = whereis "bzip2" if !defined $EXEC;
+        $EXEC = where_is "bzip2" if !defined $EXEC;
         @_ = ($EXEC, "-9f");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
         $CMD = join " ", @_;
@@ -1907,7 +1905,7 @@ sub close : method {
         open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
         print STDERR "done\n" if $VERBOSE > 2;
     }
-    
+
     ($CMD, $PH) = (join(" ", @{$self->{"CMD"}}), $self->{"PH"});
     CORE::close $PH                     or die "$THIS_FILE: $CMD: $!";
     CORE::close $FH                     or die "$THIS_FILE: $file: $!";
@@ -1915,7 +1913,7 @@ sub close : method {
     delete $self->{"CMD"};
     delete $self->{"FH"};
     delete $self->{"file"};
-    
+
     # Delete the file
     if ($keep eq KEEP_DELETE) {
         print STDERR "  Deleting file ... " if $VERBOSE > 2;
@@ -1938,7 +1936,7 @@ use 5.008;
 use strict;
 use warnings;
 
-# parse_line: Parse the line to get an IP address
+# Parse the line to get an IP address
 sub parse_line : method {
     local ($_, %_);
     $_ = $_[1];
@@ -1948,7 +1946,7 @@ sub parse_line : method {
     return;
 }
 
-# replace_line: Replace the line with the resolved result
+# Replace the line with the resolved result
 sub replace_line : method {
     local ($_, %_);
     $_ = $_[1];
@@ -1968,7 +1966,7 @@ import main;
 
 use Socket qw(inet_aton AF_INET);
 
-use vars qw(%H_ERRNO %WSAERROR);
+our (%H_ERRNO, %WSA_ERROR);
 BEGIN {
 %H_ERRNO = (-1  =>  "NETDB_INTERNAL",
             0   =>  "NETDB_SUCCESS",
@@ -1977,7 +1975,7 @@ BEGIN {
             3   =>  "NO_RECOVERY",
             4   =>  "NO_DATA");
 # Windows Sockets Error Codes
-%WSAERROR = (   10093   =>  "WSANOTINITIALISED",
+%WSA_ERROR = (  10093   =>  "WSANOTINITIALISED",
                 10050   =>  "WSAENETDOWN",
                 11001   =>  "WSAHOST_NOT_FOUND",
                 11002   =>  "WSATRY_AGAIN",
@@ -1989,7 +1987,7 @@ BEGIN {
                 10004   =>  "WSAEINTR");
 }
 
-# new: Initialize the resolver
+# Initialize the resolver
 sub new : method {
     local ($_, %_);
     my ($class, $self);
@@ -1997,29 +1995,29 @@ sub new : method {
     $self = bless {}, $class;
     $self->{"threaded"} = 0;
     $self->{"IP"} = [];
-    $self->{"PKIP"} = {};
+    $self->{"PK_IP"} = {};
     $self->{"RESULT"} = {};
     $self->{"DONE"} = 0;
     return $self;
 }
 
-# add: Add an IP address
+# Add an IP address
 sub add : method {
     local ($_, %_);
-    my ($self, $ip, $pkip);
+    my ($self, $ip, $pk_ip);
     ($self, $ip) = @_;
     # Skip malformed lines
     return unless defined $ip;
     # Skip duplicated IP
-    return if exists ${$self->{"PKIP"}}{$ip};
+    return if exists ${$self->{"PK_IP"}}{$ip};
     # Skip malformed IP
-    return unless defined($pkip = inet_aton $ip);
+    return unless defined($pk_ip = inet_aton $ip);
     push @{$self->{"IP"}}, $ip;
-    ${$self->{"PKIP"}}{$ip} = $pkip;
+    ${$self->{"PK_IP"}}{$ip} = $pk_ip;
     return;
 }
 
-# result: Return the resolved result of an IP address
+# Return the resolved result of an IP address
 sub result : method {
     local ($_, %_);
     my ($self, $ip);
@@ -2028,33 +2026,33 @@ sub result : method {
     return $ip;
 }
 
-# sort: Sort the IP
+# Sort the IP
 sub sort : method {
     local ($_, %_);
-    my ($self, $IP, $PKIP);
+    my ($self, $IP, $PK_IP);
     $self = $_[0];
-    ($IP, $PKIP) = ($self->{"IP"}, $self->{"PKIP"});
-    $IP = [CORE::sort { $$PKIP{$a} cmp $$PKIP{$b} } @$IP];
+    ($IP, $PK_IP) = ($self->{"IP"}, $self->{"PK_IP"});
+    $IP = [CORE::sort { $$PK_IP{$a} cmp $$PK_IP{$b} } @$IP];
     return;
 }
 
-# resolve_all: Resolve the collected IP
+# Resolve the collected IP
 sub resolve_all : method {
     local ($_, %_);
     my ($self, $t0, $IP, $RESULT);
     $self = $_[0];
     ($IP, $RESULT) = ($self->{"IP"}, $self->{"RESULT"});
     $t0 = time;
-    print STDERR "Resolving IP ... " if ($VERBOSE == 1 || $VERBOSE == 2) && !$CONF{"PROGBAR"};
-    
-    # Sort to group neighber IP together for faster process
+    print STDERR "Resolving IP ... " if ($VERBOSE == 1 || $VERBOSE == 2) && !$CONF{"IS_PROGRESS_BAR"};
+
+    # Sort to group neighbor IP together for faster process
     $self->sort;
-    $PROGBAR = _private::ProgressBar->new("", scalar(@$IP));
+    $PROGRESS_BAR = _private::ProgressBar->new("", scalar(@$IP));
     for ($_ = 0; $_ < @$IP; $_++) {
         $self->resolve_ip($_);
     }
-    
-    print STDERR "done\n" if ($VERBOSE == 1 || $VERBOSE == 2) && !$CONF{"PROGBAR"};
+
+    print STDERR "done\n" if ($VERBOSE == 1 || $VERBOSE == 2) && !$CONF{"IS_PROGRESS_BAR"};
     printf STDERR "Resolved %d IP from %d (%3.2f%%) in %d seconds\n",
             scalar(keys %$RESULT), scalar(@$IP),
             scalar(keys %$RESULT)*100/scalar(@$IP),
@@ -2063,17 +2061,17 @@ sub resolve_all : method {
     return;
 }
 
-# show_result: Show the result
+# Show the result
 sub show_result : method {
     local ($_, %_);
     my ($self, $idx, $result, $IP, $label);
     ($self, $idx, $result) = @_;
     $IP = $self->{"IP"};
     # Show the progress bar
-    if ($CONF{"PROGBAR"}) {
+    if ($CONF{"IS_PROGRESS_BAR"}) {
         $self->{"DONE"}++;
         $label = sprintf "%d/%d", $self->{"DONE"}, scalar(@$IP);
-        $PROGBAR->update($self->{"DONE"}, $label);
+        $PROGRESS_BAR->update($self->{"DONE"}, $label);
     # Show detail result
     } elsif ($VERBOSE > 2) {
         printf STDERR "[%d/%d] %s => %s\n",
@@ -2085,33 +2083,33 @@ sub show_result : method {
 # Methods below are specific to DNS reverse-resolve, but can be overwrite for other type
 #   of resolving, like GeoIP.
 
-# resolve_ip: Resolve an IP
+# Resolve an IP
 sub resolve_ip : method {
     local ($_, %_);
     my ($self, $idx, $ip, $name, $result, $errno);
     ($self, $idx) = @_;
     $ip = ${$self->{"IP"}}[$idx];
     $? = 0 if $? != 0;
-    $name = gethostbyaddr ${$self->{"PKIP"}}{$ip}, AF_INET;
+    $name = gethostbyaddr ${$self->{"PK_IP"}}{$ip}, AF_INET;
     $errno = $?;
     # Found
     if (defined $name) {
         ${$self->{"RESULT"}}{$ip} = $name;
         $result = $name;
-    
+
     # Not found
     } else {
-        # MSWin32 use Windows Sockets Error Codes 
+        # MSWin32 use Windows Sockets Error Codes
         if ($^O eq "MSWin32") {
             # Error not returned
             if (!defined $errno) {
                 $result = "failed (no error given)";
             # Error not defined
-            } elsif (!exists $WSAERROR{$errno}) {
+            } elsif (!exists $WSA_ERROR{$errno}) {
                 $result = "failed (error = $errno)";
             # Report the error
             } else {
-                $result = "failed ($WSAERROR{$errno})";
+                $result = "failed ($WSA_ERROR{$errno})";
             }
         # Others use h_errno
         } else {
@@ -2154,41 +2152,41 @@ sub resolve_in_a_thread($$);
 
 use Fcntl qw(:flock);
 
-# new: Initialize the resolver
+# Initialize the resolver
 sub new : method {
     my ($class, $self);
     $class = $_[0];
     $self = $class->SUPER::new;
     $self->{"threaded"} = 1;
-    $self->{"CURINDEX"} = 0;
+    $self->{"CURRENT_INDEX"} = 0;
     share $self->{"IP"};
-    share $self->{"PKIP"};
+    share $self->{"PK_IP"};
     share $self->{"RESULT"};
     share $self->{"DONE"};
-    share $self->{"CURINDEX"};
+    share $self->{"CURRENT_INDEX"};
     return $self;
 }
 
-# resolve_all: Resolve the collected IP
+# Resolve the collected IP
 sub resolve_all : method {
     local ($_, %_);
     my ($self, $t0, $IP, $RESULT);
     $self = $_[0];
     ($IP, $RESULT) = ($self->{"IP"}, $self->{"RESULT"});
     $t0 = time;
-    print STDERR "Resolving IP ... " if ($VERBOSE == 1 || $VERBOSE == 2) && !$CONF{"PROGBAR"};
-    
-    # Sort to group neighber IP together for faster process
+    print STDERR "Resolving IP ... " if ($VERBOSE == 1 || $VERBOSE == 2) && !$CONF{"IS_PROGRESS_BAR"};
+
+    # Sort to group neighbor IP together for faster process
     $self->sort;
-    $PROGBAR = _private::ProgressBar->new("", scalar(@$IP));
+    $PROGRESS_BAR = _private::ProgressBar->new("", scalar(@$IP));
     # Start the thread workers
     for ($_ = 0, @_ = qw(); $_ < $CONF{"THREADS"}; $_++) {
         push @_, threads->new(\&resolve_in_a_thread, $self, $_+1);
     }
     # Wait for everyone to end
     $_->join foreach @_;
-    
-    print STDERR "done\n" if ($VERBOSE == 1 || $VERBOSE == 2) && !$CONF{"PROGBAR"};
+
+    print STDERR "done\n" if ($VERBOSE == 1 || $VERBOSE == 2) && !$CONF{"IS_PROGRESS_BAR"};
     printf STDERR "Resolved %d IP from %d (%3.2f%%) in %d seconds\n",
             scalar(keys %$RESULT), scalar(@$IP),
             scalar(keys %$RESULT)*100/scalar(@$IP),
@@ -2197,7 +2195,7 @@ sub resolve_all : method {
     return;
 }
 
-# show_result: Show the result
+# Show the result
 sub show_result : method {
     local ($_, %_);
     my ($self, $idx, $result, $IP, $label);
@@ -2206,11 +2204,11 @@ sub show_result : method {
     # Lock to prevent simultaneous write to STDERR
     flock STDERR, LOCK_EX;
     # Show the progress bar
-    if ($CONF{"PROGBAR"}) {
+    if ($CONF{"IS_PROGRESS_BAR"}) {
         lock $self->{"DONE"};
         $self->{"DONE"}++;
         $label = sprintf "%d/%d", $self->{"DONE"}, scalar(@$IP);
-        $PROGBAR->update($self->{"DONE"}, $label);
+        $PROGRESS_BAR->update($self->{"DONE"}, $label);
     # Show detail result
     } elsif ($VERBOSE > 2) {
         printf STDERR "[t%d:%d/%d] %s => %s\n",
@@ -2221,7 +2219,7 @@ sub show_result : method {
     return;
 }
 
-# resolve_in_a_thread: Proform URL checks in a thread
+# Perform URL checks in a thread
 sub resolve_in_a_thread($$) {
     local ($_, %_);
     my ($self, $tno, $IP);
@@ -2235,7 +2233,7 @@ sub resolve_in_a_thread($$) {
     }
     # Check until the end
     $self->resolve_ip($_)
-        while ($_ = $self->newidx) < @$IP;
+        while ($_ = $self->new_idx) < @$IP;
     if ($VERBOSE > 2) {
         flock STDERR, LOCK_EX;
         print STDERR "Thread $tno finished.\n";
@@ -2244,13 +2242,13 @@ sub resolve_in_a_thread($$) {
     return;
 }
 
-# newidx: Obtain a new index
-sub newidx($$) {
+# Obtain a new index
+sub new_idx($$) {
     local ($_, %_);
     my $self;
     $self = $_[0];
-    lock $self->{"CURINDEX"};
-    return $self->{"CURINDEX"}++;
+    lock $self->{"CURRENT_INDEX"};
+    return $self->{"CURRENT_INDEX"}++;
 }
 
 
@@ -2267,40 +2265,37 @@ reslog - Reverse-resolve IP in Apache log files
 
 =head1 DESCRIPTION
 
-F<reslog> resolves IPs in L<Apache(8)> log files.  The result can
-then be analyzed by another program, like Analog.  You can think
-of it as a replacement of the L<Apache(8)> C<HostNameLookups>
-directive, in the sense that it resolves client IPs altogether once a
-day.
+F<reslog> resolves IPs in L<Apache(8)> log files.  The result can then
+be analyzed by another program, like Analog.  You can think of it as a
+replacement of the L<Apache(8)> C<HostNameLookups> directive, in the
+sense that it batch resolves client IPs once a day.
 
-I<Resolving takes long time>.  This is mainly caused by resolving:
+I<Resolving takes long time>.  This is mainly caused by the look up:
 Network packets may be filtered by firewalls; DNS servers may not be
 correctly configured; may not be up working; may sit in slow network
 sections; may be old slow machines; may have traffic jam... etc.  All
-these reasons are out of our control.
+these problems are c our control.
 
 If it stops in the middle of its execution, as when the user hits a
 C<Ctrl-Break>, it may leave a temporary working file.  The next time
-it runs, it will stop when it sees that temporary working file at the
+it runs, it stops when it sees that temporary working file at the
 first sight.  Please process that file first.  You can resolve it
 again, just like an ordinary log file.
 
-This prorgam needs temporary working space.  Between memory and disk
-space, I choose disk space, since it is cheaper and may be available
-in more environments.  However, this means that it needs free
-temporary disk space about 2 times of the size of the source log log
-file (10 times if using memory).  Please make sure you have that much
-free space.
+F<reslog> needs temporary working space.  Disk space is cheaper and is
+more available than memory.  However, this means that it needs free
+temporary disk space about 2 times of the size of the source log file
+(10 times if using memory).  Please make sure you have that much free
+space.
 
-I suggest you to install L<File::MMagic(3)|File::MMagic/3> instead of
-counting on the file executable.  The internal magic file of
-L<File::MMagic(3)|File::MMagic/3> seems to work better than the
+I suggest that you install L<File::MMagic(3)|File::MMagic/3> instead
+of counting on the L<file(1)|file/1> executable.  The internal magic
+file of L<File::MMagic(3)|File::MMagic/3> works better than the
 L<file(1)|file/1> executable.  F<reslog> treats everything not
 L<gzip(1)|gzip/1> nor L<bzip2(1)|bzip2/1> compressed as plain text.
 When a compressed log file is wrongly recognized as an image,
-F<reslog> will treat it as plain text, read log records directly from
-it and fail.  This failure does not hurt the source log files, but is
-still annoying.
+F<reslog> treats it as plain text, reads directly from it, and fails.
+This does not hurt the source log files, but is still annoying.
 
 =head1 OPTIONS
 
@@ -2308,68 +2303,66 @@ still annoying.
 
 =item logfile
 
-The log file to be resolved.  If not specified, it will read from
-C<STDIN> and output to C<STDOUT>.  You can also specify C<-> to read
-from C<STDIN>.  Multiple log files are supported.  If one of these
-files are C<STDIN>, it will output to C<STDOUT>.  L<gzip(1)|gzip/1>
-or L<bzip2(1)|bzip2/1> compressed files are supported, too.
+The log file to be resolved.  You can specify multiple log files.  If
+not specified, it reads from C<STDIN> and outputs to C<STDOUT>.  You
+can also specify C<-> to read from C<STDIN>.  Result of C<STDIN>
+goes to C<STDOUT>.  gzip or bzip2 compressed files are supported.
 
-=item -k,--keep mode
+=item -k, --keep mode
 
-What to keep in the source file.  Currently the following modes are
-supported:
+What to keep in the source file.  The following modes are supported:
 
 =over
 
-=item a,all
+=item a, all
 
 Keep the source file after records are resolved.
 
-=item r,restart
+=item r, restart
 
 Restart the source file after records are resolved.
 
-=item d,delete
+=item d, delete
 
 Delete the source file after records are resolved.  This is the
 default.
 
 =back
 
-=item -o,--override mode
+=item -o, --override mode
 
-Whether we should overwrite the existing resolved files.  Currently
-the following modes are supported:
+What to do with the existing resolved files.  The following modes are
+supported:
 
 =over
 
-=item o,overwrite
+=item o, overwrite
 
 Overwrite any existing target file.
 
-=item a,append
+=item a, append
 
 Append the records to the existing target file.
 
-=item f,fail
+=item f, fail
 
 Stop processing whenever a target file exists, to prevent destroying
 any existing files by accident.  This is the default.
 
 =back
 
-=item -s,--suffix suf
+=item -s, --suffix suf
 
 The suffix to be appended to the output file.  If not specified, the
 default is C<.resolved>.
 
-=item -t,--trim-suffix suf
+=item -t, --trim-suffix suf
 
 The suffix to be trimmed from the input file name before appending
 the above suffix.  Default is none.  If you are running several log
 file filters, this can help you trim the suffix of the previous one.
 
-=item -n,--num-threads n
+=item -n, --num-threads n
 
 Number of threads to run simultaneously.  The default is 10.  Use 0
 to disable threading.  This option has no effect on systems that does
@@ -2385,7 +2378,7 @@ Show the detailed debugging messages.
 
 =item -q, --quiet
 
-Shihhhhhh.  Only yell when errors.
+Hush!  Only yell on error.
 
 =item -h, --help
 
@@ -2422,20 +2415,10 @@ along with this program.  If not, see L<http://www.gnu.org/licenses/>.
 
 imacat <imacat@mail.imacat.idv.tw>.
 
-You may visit reslog's website at:
-L<http://reslog.sourceforge.net/>,
-L<http://search.cpan.org/dist/reslog/> or
-L<http://www.imacat.idv.tw/tech/reslog.html>.
-
 =head1 BUGS
 
-reslog has a mailing list reslog-users@lists.sourceforge.net.  If you
-have any question, comment, bug report, patch, please send it to the
-mailing list.  You may join the mailing list at
-L<https://lists.sourceforge.net/lists/listinfo/reslog-users>.  Do not
-send mails directly to me unless you have private business with me.
-The mailing list has an archive.  People having the same trouble as
-you may search the archive, find the answer and save a lot of time.
+The F<reslog> project is hosted on GitHub.  Address your issues on the
+GitHub issue tracker https://github.com/imacat/reslog/issues.
 
 =head1 TODO
 

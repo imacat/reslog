@@ -1,23 +1,37 @@
 reslog change log
 
+2020-02-06
+	 1. Replaced the messy GNU-styled, multi-lingual documents with a
+	    single Markdown README.md.
+	 2. Added the GitHub repository to the document, and removed the
+	    SourceForge website, my web page, and the SourceForge mailing
+	    list from the document.
+	 3. Removed the document license, and my PGP key from the package.
+	    Removed the signature file from the repository.
+	 4. Changed the license from GPLv3 to APLv2.
+	 5. Various fixes to avoid JetBrains IDE problem detection.
+
+2020-02-01
+	 arclog is hosted on GitHub now.
+
 2008-11-18
-	 1. INSTALL and reslog.en.html: Fixed the grammer on
+	 1. INSTALL and reslog.en.html: Fixed the grammar on
 	    installation with the CPAN or CPANPLUS shell, changed
 	    "install with the CPAN shell using" and "install with the
 	    CPANPLUS shell using" to "install it with the CPAN shell
 	    by running" and "install it with the CPANPLUS shell by
 	    running".
-	 2. INSTALL* and ahping.*.html: Changed "Fedora/Red Hat" to
+	 2. INSTALL* and reslog.*.html: Changed "Fedora/Red Hat" to
 	    "Red Hat/Fedora/CentOS".
 
 2008-11-17
-	 1. INSTALL and reslog.en.html: Fixed the grammer on required
+	 1. INSTALL and reslog.en.html: Fixed the grammar on required
 	    and optional module installation, changed "install using"
 	    and "install this using" to "install it by running".
 
 2008-11-15
 	 1. reslog.*.html: Fixed so that installation from source and
-	    with shells are joint into one sentense.
+	    with shells are joint into one sentence.
 
 2008-11-12
 	 1. INSTALL*, reslog.*.html: Updated information on
@@ -102,7 +116,7 @@ reslog change log
 	    with $tz + (timegm(localtime)-timelocal(localtime)).  This
 	    is the easy and right way to do.
 	 4. reslog.zh-tw.html, TODO.zh-tw, TODO.zh-cn: Changed
-	    'ÁcÅé¤¤¤å' to '¥¿Åé¤¤¤å'.
+	    'ç¹é«”ä¸­æ–‡' to 'æ­£é«”ä¸­æ–‡'.
 
 2007-12-02
 	 1. t/02-several.t: Added, to replace the t/04-hybrix.t.
@@ -211,11 +225,11 @@ reslog change log
 	    static methods now.
 	 2. reslog: Renamed the new_read() method as open_read(), the
 	    new_write() method as open_write(), the new_append() method
-	    as open_append().  Replaced the strange architech that start
+	    as open_append().  Replaced the strange architect that start
 	    a new instance with $ioclass, with reusing the same $io object.
 	 3. reslog: Renamed the new_read() method as open_read(), the
 	    new_write() method as open_write(), the new_append() method
-	    as open_append().  Replaced the strange architech that start
+	    as open_append().  Replaced the strange architect that start
 	    a new instance with $ioclass, with reusing the same $io object.
 	 4. reslog: Changed " -- " to " - " in comment.
 	 5. reslog: Changed "Deal the ~ home directories under UNIX" to
@@ -288,7 +302,7 @@ reslog change log
 	 2. reslog: new() method of _private::LogFile class now opens
 	    the log file in read-only mode when keep all.
 	 2. reslog: check_type() method of _private::LogFile class now returns
-	    the type instead of setting $self->{"type"}, for code readibility.
+	    the type instead of setting $self->{"type"}, for code readability.
 
 2006-06-11
 	 1. reslog: new() method of _private::LogFile class now initialized
@@ -297,7 +311,7 @@ reslog change log
 	 2. reslog: Upper-case the error messages in _private::LogFile.
 	 3. reslog: check_io() method of _private::LogFile class now returns
 	    the IO object instead of setting $self->{"io"}, for code
-	    readibility.
+	    readability.
 	 4. reslog: Fixed _private::LogFile::STDIN::new() method that we
 	    passed an extra empty argument to tempfile().
 	 5. reslog: Fixed comment, use "handler" instead of "handle".
@@ -319,13 +333,13 @@ reslog change log
 	    cut-and-paste?)  A correct one is supplied.
 
 2005-05-22	version 3.07
-	 1. reslog: No more checks on the availablility of STDIN and STDOUT,
+	 1. reslog: No more checks on the availability of STDIN and STDOUT,
 	    and no more dummy replacement created if not.  It was originally
 	    to solve perl.cpan.testers 202971 when running with CPANPLUS under
 	    MSWin32, duplicating closed STDIN causes errors.  But I was going
-	    the wrong way.  I was testing STDIN/STDOUT/STDRR redirection in
+	    the wrong way.  I was testing STDIN/STDOUT/STDERR redirection in
 	    shell backticks.  Whether CPANPLUS closes STDIN or not should be
-	    irrevelent.  It may be a issue of the shell backticks itself.
+	    irrelevant.  It may be a issue of the shell backticks itself.
 	    Anyhow I rewrote the testing executing method and it is solve.  In
 	    fact, it's still not working when STDIN and STDOUT is unavailable.
 	    But IPC::Open3 won't work on that, too.  It should be safe to be
@@ -352,9 +366,9 @@ reslog change log
 	    to duplicate unopened STDIN crashes directly instead of dies that
 	    can be caught by eval().
 	 2. t/01-plain.t, t/02-gzip.t, t/03-bzip2.t, t/04-hybrix.t: Add
-	    option -d -d -d for more debug information when failures occure.
+	    option -d -d -d for more debug information when failures occur.
 	 2. t/_helper.pm: Prepend the command line to the STDERR result to
-	    ease debuging.
+	    ease debugging.
 
 2005-05-18
 	Solaris fix.
@@ -409,7 +423,7 @@ reslog change log
 	    added.  Subroutine readfile() is renamed as fread().  Prototype
 	    cplist() is corrected as cp().  Subroutine rm() is removed.
 	 6. t/01-plain.t, t/02-gzip2.t, t/03-bzip2.t, t/04-hybrix.t: I joined
-	    subtests together and shrinked the total number of tests.  They
+	    subtests together and shrank the total number of tests.  They
 	    should be one tests anyway.  This way I can test more on the result.
 	 7. t/MyHelper.pm: flist() is added so that I can test if the resulted
 	    files list is correct.  Several subtests on whether a file exists
@@ -444,7 +458,7 @@ reslog change log
 	    internally, even for anonymous temporary files.  This simplified
 	    the locking problem.  How foreign programs access file handles are
 	    not an issue anymore.
-	 2. Makefile.PL: MY pacakge is added.  Makefile target "upgrade" is
+	 2. Makefile.PL: MY package is added.  Makefile target "upgrade" is
 	    added to remove the old files.  constants() and manifypods()
 	    methods are added to alter the default install location.  Now we
 	    default to install to /sbin directory and as manpage section 8.
@@ -540,7 +554,7 @@ reslog change log
 	    new I/O handlers.
 	 4. New option --trim-suffix is added to remove certain file name
 	    suffix before appending our suffix, so that reslog can line-up
-	    with other log file post-processers.
+	    with other log file post-processors.
 	 5. file utility can be used instead of File::MMagic if that is not
 	    available.
 	 6. Term::Size is used to display the progress bar under UNIX.  Under
@@ -572,7 +586,7 @@ reslog change log
 2002-11-13
          1. Long statistic lines are split for easy reading.
          2. open_src() was rewritten according to open_src() in arclog.pl, in
-            order to use comression with gzip and bzip2 binary executables.
+            order to use compression with gzip and bzip2 binary executables.
 
 2002-11-12
 	 1. RELEASE_NOTES was renamed as ChangeLog.
@@ -588,8 +602,8 @@ reslog change log
 2002-10-28
 	 1. Fixed a bug that $WORKING_RES was not locked when opened.  But it
 	    is unlocked when closed.  On some systems (like Linux) you can
-	    request unlock on a filehandle that is not previous locked, but on
-	    some others (like MSWin32) requesting unlock on a filehande that
+	    request unlock on a file handle that is not previous locked, but on
+	    some others (like MSWin32) requesting unlock on a file handle that
 	    is not previous locked will cause error.  $WORKING_RES doesn't
 	    really need locking at all.  It is an anonymous temporary file
 	    handle, that can be accessed by this same working process only.
@@ -602,7 +616,7 @@ reslog change log
 	 1. File::MMagic and file are now used to check the file type, in
 	    addition to the file name suffix, with a more preferred order.
 	 2. check_file_type() was added to check the file types by either
-	    File::MMaagic or file.
+	    File::MMagic or file.
 	 3. check_gzip() was added to check the gzip method to use.
 	 4. check_bzip2() was added to check the bzip2 method to use.
 
@@ -627,11 +641,11 @@ reslog change log
 2002-08-31	version 2.1.0dev1
 	Rewrite after almost 1 year, to be run on the newly-released Perl
 	5.8.0.
-	 1. Filehandles are now saved and passed in global named variables.
+	 1. File handles are now saved and passed in global named variables.
 	    This is the way it should be.  The old way (initialize the file
 	    handles by duplicate the STDIN and assign them) was just not
 	    natural.  It works in Perl 5.6.1, but not in Perl 5.8.0.  The
-	    duplicated filehandles are constants, which cannot be assigned new
+	    duplicated file handles are constants, which cannot be assigned new
 	    values.
 	 2. Indents are changed from 1 tab to 4 columns, to accommodate the
 	    Perl style guide documented in perlstyle(1).  This increases the
@@ -663,7 +677,7 @@ reslog change log
 	 1. Chinese and English standard header were added.
 	 2. Getopt::Long was introduced to parse the arguments, in replace of
 	    my own argument-parsing routine.
-	 3. File::Spec::Functions was introduced to handle the pathnames.
+	 3. File::Spec::Functions was introduced to handle the pathname.
 	 4. Cwd was introduced to obtain the current working directory.
 	 5. autoflush from IO::Handle was introduced, to autoflush STDOUT
 	    solely under debugging mode.
