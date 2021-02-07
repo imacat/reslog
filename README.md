@@ -481,6 +481,14 @@ The `reslog` project is hosted on GitHub.  Address your issues on the
 GitHub issue tracker https://github.com/imacat/reslog/issues.
 
 
+Thanks
+------
+
+* Thanks to [SourceForge] for hosting the project.
+
+[SourceForge]: https://sf.net
+
+
 License
 -------
 

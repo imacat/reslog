@@ -1,6 +1,0 @@
-    Thanks to SourceForge to kindly provide hosting the reslog project.
-    Thanks to Chen-hsiu Huang <chenhsiu@gens.dhs.org> for reporting
-the bug that $WORKING_RES was not locked when opened.
-    Thanks to CPAN to kindly provide hosting the reslog project.
-    Thanks to SourceForge for providing compiling farm for projects
-to test on different platforms.
