@@ -54,11 +54,13 @@ System Requirement
 1. Perl, version 5.8.0 or above.  `reslog` uses 3-argument open() to
    duplicate file handles, which is only supported since 5.8.0.  I
    have not successfully port this onto earlier versions yet.  Please
-   tell me if you made it.  You can run `perl -v` to see your current
-   Perl version.  If you do not have Perl, or if you have an older
-   version of Perl, you can download and install/upgrade it from the
-   [Perl website].  If you are using MS-Windows, you can download and
-   install [ActiveState ActivePerl].
+   tell me if you made it.
+
+   You can run `perl -v` to check your current Perl version.  If you
+   do not have Perl, or if you have an older version of Perl, you can
+   download and install/upgrade it from the [Perl website].  For
+   MS-Windows, you can download and install [Strawberry Perl] or
+   [ActivePerl].
 
 2. Required Perl modules: None.
 
@@ -91,10 +93,6 @@ System Requirement
 
          ports install p5-File-MMagic
 
-     For ActivePerl:
-
-         ppm install File-MMagic
-
      The alternative `file.exe` for MS-Windows can be obtained from
      the [GnuWin32] home page.  Be sure to save it as `file.exe`
      somewhere in your `PATH`.
@@ -125,10 +123,6 @@ System Requirement
      For FreeBSD:
 
          ports install p5-Compress-Zlib
-
-     For ActivePerl:
-
-         ppm install Compress-Zlib
 
      The alternative `gzip.exe` for MS-Windows can be obtained from
      [the gzip website].  Be sure to save it as `gzip.exe` somewhere
@@ -162,10 +156,6 @@ System Requirement
      For FreeBSD:
 
          ports install p5-Compress-Bzip2
-
-     For ActivePerl:
-
-         ppm install Compress-Bzip2
 
      The alternative `bzip2.exe` for MS-Windows can be obtained from
      [the bzip2 website].  Be sure to save it as `bzip2.exe` somewhere
@@ -202,7 +192,8 @@ System Requirement
          ppm install TermReadKey
 
 [Perl website]: https://www.perl.org
-[ActiveState ActivePerl]: https://www.activestate.com
+[Strawberry Perl]: https://strawberryperl.com
+[ActivePerl]: https://www.activestate.com/products/perl/
 [File::MMagic]: https://metacpan.org/release/File-MMagic
 [GnuWin32]: http://gnuwin32.sourceforge.net
 [Compress::Zlib]: https://metacpan.org/release/Compress-Zlib
@@ -247,34 +238,21 @@ instruction later in this document.
 
 ### Install with [ExtUtils::MakeMaker]
 
-`reslog` uses standard Perl installation with ExtUtils::MakeMaker.
-Follow these steps:
-
     % perl Makefile.PL
     % make
     % make test
     % make install
 
 When running `make install`, make sure you have the privilege to
-write to the installation location.  This usually requires the `root`
+write to the installation locations.  This usually requires the `root`
 privilege.
 
-If you are using ActivePerl under MS-Windows, you should use `nmake`
-instead of `make`.  [nmake can be obtained from the Microsoft FTP site.]
+For MS-Windows, since `make` is not universally available,
+Module::Build is preferred to ExtUtils::MakeMaker.  See the
+instructions below.
 
-If you want to install into another location, you can set the
-`PREFIX`.  For example, to install into your home when you are not
-`root`:
-
-    % perl Makefile.PL PREFIX=/home/jessica
-
-Refer to the documentation of ExtUtils::MakeMaker for more
-installation options (by running `perldoc ExtUtils::MakeMaker`).
 
 ### Install with [Module::Build]
-
-You can install with Module::Build instead, if you prefer.  Follow
-these steps:
 
     % perl Build.PL
     % ./Build
@@ -282,7 +260,7 @@ these steps:
     % ./Build install
 
 When running `./Build install`, make sure you have the privilege to
-write to the installation location.  This usually requires the `root`
+write to the installation locations.  This usually requires the `root`
 privilege.
 
 If you want to install into another location, you can set the
@@ -295,7 +273,6 @@ Refer to the documentation of Module::Build for more installation
 options (by running `perldoc Module::Build`).
 
 [ExtUtils::MakeMaker]: https://metacpan.org/release/ExtUtils-MakeMaker
-[nmake can be obtained from the Microsoft FTP site.]: ftp://ftp.microsoft.com/Softlib/MSLFILES/nmake15.exe
 [Module::Build]: https://metacpan.org/release/Module-Build
 
 
