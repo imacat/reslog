@@ -101,10 +101,11 @@ System Requirement
 
      This is used to support reading/writing the gzip compressed
      files.  It is only needed when gzip compressed files are
-     encountered.  If it is not available, `reslog` tries the `gzip`
-     executable instead.  If that is not available, too, `reslog`
-     fails.  You can download and install Compress::Zlib from the CPAN
-     archive, or install it with the CPAN shell:
+     encountered.  If it is not available, `arclog` tries the `gzip`
+     executable instead.  If that is not available, too, `arclog`
+     fails.  Compress::Zlib comes with Perl since version 5.9.3.  If
+     not, you can download and install it from the CPAN archive, or
+     install it with the CPAN shell:
 
          cpan Compress::Zlib
 
@@ -114,15 +115,19 @@ System Requirement
 
      For Debian/Ubuntu:
 
-         sudo apt install libcompress-zlib-perl
+         sudo apt install libio-compress-perl
 
      For Red Hat/Fedora/CentOS:
 
-         sudo yum install perl-Compress-Zlib
+         sudo yum install perl-IO-Compress
 
      For FreeBSD:
 
-         ports install p5-Compress-Zlib
+         ports install p5-IO-Compress
+
+     For ActivePerl:
+
+         ppm install IO-Compress
 
      The alternative `gzip.exe` for MS-Windows can be obtained from
      [the gzip website].  Be sure to save it as `gzip.exe` somewhere
@@ -196,7 +201,7 @@ System Requirement
 [ActivePerl]: https://www.activestate.com/products/perl/
 [File::MMagic]: https://metacpan.org/release/File-MMagic
 [GnuWin32]: http://gnuwin32.sourceforge.net
-[Compress::Zlib]: https://metacpan.org/release/Compress-Zlib
+[Compress::Zlib]: https://metacpan.org/pod/Compress::Zlib
 [the gzip website]: https://www.gzip.org
 [Compress::Bzip2]: https://metacpan.org/release/Compress-Bzip2
 [the bzip2 website]: http://www.bzip.org
