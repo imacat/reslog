@@ -203,13 +203,13 @@ System Requirement
 [Perl website]: https://www.perl.org
 [Strawberry Perl]: https://strawberryperl.com
 [ActivePerl]: https://www.activestate.com/products/perl/
-[File::MMagic]: https://metacpan.org/release/File-MMagic
+[File::MMagic]: https://metacpan.org/pod/File::MMagic
 [GnuWin32]: http://gnuwin32.sourceforge.net
 [Compress::Zlib]: https://metacpan.org/pod/Compress::Zlib
 [the gzip website]: https://www.gzip.org
-[Compress::Bzip2]: https://metacpan.org/release/Compress-Bzip2
+[Compress::Bzip2]: https://metacpan.org/pod/Compress::Bzip2
 [the bzip2 website]: http://www.bzip.org
-[Term::ReadKey]: https://metacpan.org/release/TermReadKey
+[Term::ReadKey]: https://metacpan.org/pod/Term::ReadKey
 
 
 Download
