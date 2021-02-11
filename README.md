@@ -162,6 +162,10 @@ System Requirement
 
          ports install p5-Compress-Bzip2
 
+     For ActivePerl:
+
+         ppm install Compress-Bzip2
+
      The alternative `bzip2.exe` for MS-Windows can be obtained from
      [the bzip2 website].  Be sure to save it as `bzip2.exe` somewhere
      in your `PATH`.
