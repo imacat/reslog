@@ -1240,7 +1240,7 @@ sub close : method {
 }
 
 
-# _private::IO::Gzip::Exec: The gzip executable compression I/O handle
+# _private::IO::Gzip::Exec: The gzip executable compression I/O handler
 package _private::IO::Gzip::Exec;
 use 5.008;
 use strict;
@@ -1350,7 +1350,7 @@ sub open_append : method {
     # Save the original data if file has content so that file size is
     # greater than 0.  STDOUT is always of size 0.
     if ((stat $FH)[7] > 0) {
-        my ($count, $FHT, $PHT, $CMDT);
+        my ($count, $FHT, $PHT, $CMD_T);
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         # Copy the original content to a buffer
         print STDERR "  Reading compressed data to the buffer ... " if $VERBOSE > 2;
@@ -1368,15 +1368,15 @@ sub open_append : method {
         # Decompress the buffer and save to our file
         @_ = ($EXEC, "-cdf");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
-        $CMDT = join " ", @_;
-        print STDERR "  Starting $CMDT from buffer ... " if $VERBOSE > 2;
+        $CMD_T = join " ", @_;
+        print STDERR "  Starting $CMD_T from buffer ... " if $VERBOSE > 2;
         # Redirect STDIN to $FH
         open STDIN, "<&", $FHT          or die "$THIS_FILE: tempfile: $!";
         # Start the process
         if ($^O eq "MSWin32") {
-            open $PHT, "$CMDT |"        or die "$THIS_FILE: $CMDT: $!";
+            open $PHT, "$CMD_T |"       or die "$THIS_FILE: $CMD_T: $!";
         } else {
-            open $PHT, "-|", @_         or die "$THIS_FILE: $CMDT: $!";
+            open $PHT, "-|", @_         or die "$THIS_FILE: $CMD_T: $!";
         }
         # Restore STDIN
         open STDIN, "<&", $STDIN        or die "$THIS_FILE: STDIN: $!";
@@ -1404,7 +1404,7 @@ sub open_append : method {
             print $PH $_                or die "$THIS_FILE: $file: $!";
             $count++;
         }
-        close $PHT                      or die "$THIS_FILE: $CMDT: $!";
+        close $PHT                      or die "$THIS_FILE: $CMD_T: $!";
         close $FHT                      or die "$THIS_FILE: tempfile: $!";
         print STDERR "$count records\n" if $VERBOSE > 2;
 
@@ -1689,7 +1689,7 @@ sub close : method {
 }
 
 
-# _private::IO::Bzip2::Exec: The bzip2 executable compression I/O handle
+# _private::IO::Bzip2::Exec: The bzip2 executable compression I/O handler
 package _private::IO::Bzip2::Exec;
 use 5.008;
 use strict;
@@ -1799,7 +1799,7 @@ sub open_append : method {
     # Save the original data if file has content so that file size is
     # greater than 0.  STDOUT is always of size 0.
     if ((stat $FH)[7] > 0) {
-        my ($count, $FHT, $PHT, $CMDT);
+        my ($count, $FHT, $PHT, $CMD_T);
         seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
         # Copy the original content to a buffer
         print STDERR "  Reading compressed data to the buffer ... " if $VERBOSE > 2;
@@ -1817,15 +1817,15 @@ sub open_append : method {
         # Decompress the buffer and save to our file
         @_ = ($EXEC, "-cdf");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
-        $CMDT = join " ", @_;
-        print STDERR "  Starting $CMDT from buffer ... " if $VERBOSE > 2;
+        $CMD_T = join " ", @_;
+        print STDERR "  Starting $CMD_T from buffer ... " if $VERBOSE > 2;
         # Redirect STDIN to $FH
         open STDIN, "<&", $FHT          or die "$THIS_FILE: tempfile: $!";
         # Start the process
         if ($^O eq "MSWin32") {
-            open $PHT, "$CMDT |"        or die "$THIS_FILE: $CMDT: $!";
+            open $PHT, "$CMD_T |"       or die "$THIS_FILE: $CMD_T: $!";
         } else {
-            open $PHT, "-|", @_         or die "$THIS_FILE: $CMDT: $!";
+            open $PHT, "-|", @_         or die "$THIS_FILE: $CMD_T: $!";
         }
         # Restore STDIN
         open STDIN, "<&", $STDIN        or die "$THIS_FILE: STDIN: $!";
@@ -1853,7 +1853,7 @@ sub open_append : method {
             print $PH $_                or die "$THIS_FILE: $file: $!";
             $count++;
         }
-        close $PHT                      or die "$THIS_FILE: $CMDT: $!";
+        close $PHT                      or die "$THIS_FILE: $CMD_T: $!";
         close $FHT                      or die "$THIS_FILE: tempfile: $!";
         print STDERR "$count records\n" if $VERBOSE > 2;
 
