@@ -97,22 +97,23 @@ System Requirement
      the [GnuWin32] home page.  Be sure to save it as `file.exe`
      somewhere in your `PATH`.
 
-   * [Compress::Zlib]
+   * [IO::Compress::Gzip] and [IO::Uncompress::Gunzip]
 
-     This is used to support reading/writing the gzip compressed
+     They are used to support reading/writing the gzip compressed
      files.  It is only needed when gzip compressed files are
-     encountered.  If it is not available, `arclog` tries the `gzip`
-     executable instead.  If that is not available, too, `arclog`
-     fails.  You should not worry about Compress::Zlib since it comes
-     with Perl since version 5.9.3.  If not, it is contained in the
-     [IO-Compress] distribution.  You can download and install it from
-     the CPAN archive, or install it with the CPAN shell:
+     encountered.  If they are not available, `arclog` tries the
+     `gzip` executable instead.  If that is not available, too,
+     `arclog` fails.  You should not worry about IO::Compress::Gzip
+     since it comes with Perl since version 5.9.3.  If not, it is
+     contained in the [IO-Compress] distribution.  You can download
+     and install it from the CPAN archive, or install it with the
+     CPAN shell:
 
-         cpan Compress::Zlib
+         cpan IO::Compress::Gzip
 
      or with the CPANPLUS shell:
 
-         cpanp i Compress::Zlib
+         cpanp i IO::Compress::Gzip
 
      For Debian/Ubuntu:
 
@@ -134,38 +135,39 @@ System Requirement
      [the gzip website].  Be sure to save it as `gzip.exe` somewhere
      in your `PATH`.
 
-   * [Compress::Bzip2] version 2 or above.
+   * [IO::Compress::Bzip2] and [IO::Uncompress::Bunzip2]
 
-     This is used to support reading/writing the bzip2 compressed
-     files.  It is only needed when bzip2 compressed files are
-     encountered.  If it is not available, `reslog` tries the `bzip2`
-     executable instead.  If that is not available, too, `reslog`
-     fails.  Notice that older versions before 2 does not work, since
-     the file I/O compression was not implemented yet.  You can
-     download and install Compress::Bzip2 from the CPAN archive, or
-     install it with the CPAN shell:
+     They are used to support reading/writing the bzip2 compressed
+     files.  They are only needed when bzip2 compressed files are
+     encountered.  If they are not available, `arclog` tries the
+     `bzip2` executable instead.  If that is not available, too,
+     `arclog` fails.  You should not worry about IO::Compress::Bzip2
+     since it comes with Perl since version 5.10.1.  If not, it is
+     contained in the [IO-Compress] distribution.  You can download
+     and install it from the CPAN archive, or install it with the
+     CPAN shell:
 
-         cpan Compress::Bzip2
+         cpan IO::Compress::Bzip2
 
      or with the CPANPLUS shell:
 
-         cpanp i Compress::Bzip2
+         cpanp i IO::Compress::Bzip2
 
      For Debian/Ubuntu:
 
-         sudo apt install libcompress-bzip2-perl
+         sudo apt install libio-compress-perl
 
      For Red Hat/Fedora/CentOS:
 
-         sudo yum install perl-Compress-Bzip2
+         sudo yum install perl-IO-Compress
 
      For FreeBSD:
 
-         ports install p5-Compress-Bzip2
+         ports install p5-IO-Compress
 
      For ActivePerl:
 
-         ppm install Compress-Bzip2
+         ppm install IO-Compress
 
      The alternative `bzip2.exe` for MS-Windows can be obtained from
      [the bzip2 website].  Be sure to save it as `bzip2.exe` somewhere
@@ -242,10 +244,12 @@ System Requirement
 [ActivePerl]: https://www.activestate.com/products/perl/
 [File::MMagic]: https://metacpan.org/pod/File::MMagic
 [GnuWin32]: http://gnuwin32.sourceforge.net
-[Compress::Zlib]: https://metacpan.org/pod/Compress::Zlib
+[IO::Compress::Gzip]: https://metacpan.org/pod/IO::Compress::Gzip
+[IO::Uncompress::Gunzip]: https://metacpan.org/pod/IO::Uncompress::Gunzip
 [the gzip website]: https://www.gzip.org
-[IO-Compress]: https://metacpan.org/release/IO-Compress
-[Compress::Bzip2]: https://metacpan.org/pod/Compress::Bzip2
+[IO-Compress]: https://metacpan.org/dist/IO-Compress
+[IO::Compress::Bzip2]: https://metacpan.org/pod/IO::Compress::Bzip2
+[IO::Uncompress::Bunzip2]: https://metacpan.org/pod/IO::Uncompress::Bunzip2
 [the bzip2 website]: http://www.bzip.org
 [IO::Compress::Xz]: https://metacpan.org/pod/IO::Compress::Xz
 [IO::Uncompress::UnXz]: https://metacpan.org/pod/IO::Uncompress::UnXz
