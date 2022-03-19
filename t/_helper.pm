@@ -223,7 +223,7 @@ sub read_file($) {
         } else {
             my ($PH, $CMD);
             $CMD = where_is "bzip2";
-            $CMD = "bzip2 -cdf \"$file\"";
+            $CMD = "\"$CMD\" -cdf \"$file\"";
             open $PH, "$CMD |"          or die this_file . ": $CMD: $!";
             $content = join "", <$PH>;
             close $PH                   or die this_file . ": $CMD: $!";
