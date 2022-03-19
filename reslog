@@ -2273,7 +2273,7 @@ sub open_append : method {
         open STDIN, "<&", $FHT          or die "$THIS_FILE: tempfile: $!";
         # Start the process
         if ($^O eq "MSWin32") {
-            open $PHT, "$CMD_T |"        or die "$THIS_FILE: $CMD_T: $!";
+            open $PHT, "$CMD_T |"       or die "$THIS_FILE: $CMD_T: $!";
         } else {
             open $PHT, "-|", @_         or die "$THIS_FILE: $CMD_T: $!";
         }
