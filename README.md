@@ -40,10 +40,10 @@ Caution
 * I suggest that you install [File::MMagic] instead of counting on the
   `file` executable.  The internal magic file of File::MMagic works
   better than the `file` executable.  `reslog` treats everything not
-  gzip nor bzip2 compressed as plain text.  When a compressed log file
-  is wrongly recognized as an image, `reslog` treats it as plain text,
-  reads directly from it, and fails.  This does not hurt the source
-  log files, but is still annoying.
+  gzip, bzip2, nor xz compressed as plain text.  When a compressed log 
+  file is wrongly recognized as an image, `reslog` treats it as plain
+  text, reads directly from it, and fails.  This does not hurt the
+  source log files, but is still annoying.
 
 [File::MMagic]: https://metacpan.org/release/File-MMagic
 
@@ -171,6 +171,42 @@ System Requirement
      [the bzip2 website].  Be sure to save it as `bzip2.exe` somewhere
      in your `PATH`.
 
+   * [IO::Compress::Xz] and [IO::Uncompress::UnXz]
+
+     They are used to support reading/writing the xz compressed
+     files.  It is only needed when xz compressed files are
+     encountered.  If it is not available, `arclog` tries the `xz`
+     executable instead.  If that is not available, too, `arclog`
+     fails.  They are contained in the [IO-Compress-Lzma] distribution.
+     You can download and install it from the CPAN archive, or install
+     them with the CPAN shell:
+
+         cpan IO::Compress::Xz
+
+     or with the CPANPLUS shell:
+
+         cpanp i IO::Compress::Xz
+
+     For Debian/Ubuntu:
+
+         sudo apt install libio-compress-lzma-perl
+
+     For Red Hat/Fedora/CentOS:
+
+         sudo yum install perl-IO-Compress-Lzma
+
+     For FreeBSD:
+
+         ports install p5-IO-Compress-Lzma
+
+     For ActivePerl:
+
+         ppm install IO-Compress-Lzma
+
+     The alternative `xz.exe` for MS-Windows can be obtained from
+     [the XZ Utils website].  Be sure to save it as `xz.exe`
+     somewhere in your `PATH`.
+
    * [Term::ReadKey]
 
      This is used to display the progress bar.  The progress bar is a
@@ -211,6 +247,10 @@ System Requirement
 [IO-Compress]: https://metacpan.org/release/IO-Compress
 [Compress::Bzip2]: https://metacpan.org/pod/Compress::Bzip2
 [the bzip2 website]: http://www.bzip.org
+[IO::Compress::Xz]: https://metacpan.org/pod/IO::Compress::Xz
+[IO::Uncompress::UnXz]: https://metacpan.org/pod/IO::Uncompress::UnXz
+[IO-Compress-Lzma]: https://metacpan.org/dist/IO-Compress-Lzma
+[the XZ Utils website]: https://tukaani.org/xz/
 [Term::ReadKey]: https://metacpan.org/pod/Term::ReadKey
 
 
@@ -373,7 +413,8 @@ Options
   The log file to be resolved.  You can specify multiple log files.
   If not specified, it reads from `STDIN` and outputs to `STDOUT`.
   You can also specify `-` to read from `STDIN`.  Result of `STDIN`
-  goes to `STDOUT`.  `gzip` or `bzip2` compressed files are supported.
+  goes to `STDOUT`.  `gzip`, `bzip2`, or `xz` compressed files are
+  supported.
 
 * `-k`, `--keep mode`
 
@@ -480,7 +521,7 @@ Thanks
 License
 -------
 
-    Copyright (C) 2000-2021 imacat.
+    Copyright (C) 2000-2022 imacat.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

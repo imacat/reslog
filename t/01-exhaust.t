@@ -1,7 +1,7 @@
 #! /usr/bin/perl -w
 # Test all the possible combination of options
 
-# Copyright (c) 2005-2021 imacat.
+# Copyright (c) 2005-2022 imacat.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ use warnings;
 use diagnostics;
 use Test;
 
-BEGIN { plan tests => 1341 }
+BEGIN { plan tests => 1788 }
 
 use File::Basename qw(basename);
 use File::Path qw(mkpath rmtree);
@@ -193,7 +193,7 @@ foreach my $st (@SOURCE_TYPES) {
             die unless $_ || $$st{"skip"};
         }
 
-        # 85: From STDIN to STDOUT
+        # 149: From STDIN to STDOUT
         $_ = eval {
             return if $$st{"skip"};
             my ($title, $cmd, $ret_no, $out, $err, $logfile, $result);

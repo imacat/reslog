@@ -1,7 +1,7 @@
 #! /usr/bin/perl -w
 # reslog: Reverse-resolve IP in Apache log files
 
-# Copyright (c) 2000-2021 imacat.
+# Copyright (c) 2000-2022 imacat.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ BEGIN {
 @EXPORT = qw();
 push @EXPORT, qw(OVERRIDE_OVERWRITE OVERRIDE_APPEND OVERRIDE_FAIL);
 push @EXPORT, qw(KEEP_ALL KEEP_RESTART KEEP_DELETE);
-push @EXPORT, qw(TYPE_TEXT TYPE_GZIP TYPE_BZIP2);
+push @EXPORT, qw(TYPE_TEXT TYPE_GZIP TYPE_BZIP2 TYPE_XZ);
 push @EXPORT, qw(TMP_SUFFIX where_is rel2abs);
 @EXPORT_OK = @EXPORT;
 # Prototype declaration
@@ -68,6 +68,7 @@ use constant DEFAULT_KEEP => KEEP_DELETE;
 use constant TYPE_TEXT => "text/plain";
 use constant TYPE_GZIP => "application/x-gzip";
 use constant TYPE_BZIP2 => "application/x-bzip2";
+use constant TYPE_XZ => "application/x-xz";
 # Other constants
 use constant TMP_SUFFIX => ".tmp-reslog";
 use constant DEFAULT_SUFFIX => ".resolved";
@@ -566,6 +567,7 @@ sub check_type : method {
     if (-z $FH || $MAGIC_METHOD eq MAGIC_SUFFIX) {
         return TYPE_GZIP if $file =~ /\.gz$/;
         return TYPE_BZIP2 if $file =~ /\.bz2$/;
+        return TYPE_XZ if $file =~ /\.xz$/;
         # Otherwise we assume it to be text/plain
         return TYPE_TEXT;
     }
@@ -600,6 +602,7 @@ sub check_type : method {
     # Check the returned file type text
     return TYPE_GZIP if /gzip/i;
     return TYPE_BZIP2 if /bzip2/i;
+    return TYPE_XZ if /xz/i;
     # Default everything to text/plain
     return TYPE_TEXT;
 }
@@ -613,6 +616,8 @@ sub check_io : method {
     return _private::IO->check_gzip if $self->{"type"} eq TYPE_GZIP;
     # We need a bzip2 compression I/O handler
     return _private::IO->check_bzip2 if $self->{"type"} eq TYPE_BZIP2;
+    # We need a xz compression I/O handler
+    return _private::IO->check_xz if $self->{"type"} eq TYPE_XZ;
     # We need a plain I/O handler
     return _private::IO::Plain->new;
 }
@@ -627,6 +632,8 @@ sub check_output : method {
         ($file, $dir, $suf) = fileparse $self->{"file"}, ".gz";
     } elsif ($self->{"type"} eq TYPE_BZIP2) {
         ($file, $dir, $suf) = fileparse $self->{"file"}, ".bz2";
+    } elsif ($self->{"type"} eq TYPE_XZ) {
+        ($file, $dir, $suf) = fileparse $self->{"file"}, ".xz";
     } else {
         ($file, $dir, $suf) = fileparse $self->{"file"};
     }
@@ -823,10 +830,11 @@ BEGIN {
 import main;
 }
 
-our ($GZIP_IO, $BZIP2_IO);
+our ($GZIP_IO, $BZIP2_IO, $XZ_IO);
 BEGIN {
 undef $GZIP_IO;
 undef $BZIP2_IO;
+undef $XZ_IO;
 }
 
 # Initialize the I/O handler interface
@@ -900,6 +908,41 @@ sub check_bzip2 : method {
 
     print STDERR "not found\n" if $VERBOSE > 1;
     die "$THIS_FILE: Necessary Compress::Bzip2 or bzip2 not available.\n$SHORT_HELP\n";
+}
+
+# Check for compression method of xz
+sub check_xz : method {
+    local ($_, %_);
+
+    # Checked before
+    return ref($XZ_IO)->new if defined $XZ_IO;
+
+    # See whether IO::Compress::Xz or xz
+    print STDERR "Checking xz I/O handler to use ... " if $VERBOSE > 1;
+    print STDERR "\n  Checking IO::Compress::Xz ... " if $VERBOSE > 2;
+    # Check if we have IO::Compress::Xz
+    if (eval { require IO::Compress::Xz; require IO::Uncompress::UnXz; 1; }) {
+        print STDERR "OK\nfound " if $VERBOSE > 2;
+        print STDERR "IO::Compress::Xz\n" if $VERBOSE > 1;
+        return ($XZ_IO = _private::IO::Xz::PM->new);
+    }
+    # Not found
+    print STDERR "no\n" if $VERBOSE > 2;
+    # It's OK not to warn
+
+    # Looking for xz from PATH
+    print STDERR "  Checking xz... " if $VERBOSE > 2;
+    # Found in PATH
+    if (defined($_ = where_is "xz")) {
+        print STDERR "$_\nfound " if $VERBOSE > 2;
+        print STDERR "$_\n" if $VERBOSE > 1;
+        return ($XZ_IO = _private::IO::Xz::Exec->new);
+    }
+    # Not found
+    print STDERR "no\n" if $VERBOSE > 2;
+
+    print STDERR "not found\n" if $VERBOSE > 1;
+    die "$THIS_FILE: Necessary IO::Compress::Xz or xz not available.\n$SHORT_HELP\n";
 }
 
 
@@ -1928,6 +1971,456 @@ sub close : method {
 }
 
 
+# _private::IO::Xz::PM: The xz module compression I/O handler
+package _private::IO::Xz::PM;
+use 5.008;
+use strict;
+use warnings;
+use base qw(_private::IO);
+BEGIN {
+import main;
+}
+
+use Fcntl qw(:flock :seek);
+use File::Temp qw(tempfile);
+
+# Open the file for reading
+sub open_read : method {
+    local ($_, %_);
+    my ($self, $file, $FH);
+    ($self, $file, $FH) = @_;
+    # Open the file if it is not opened yet
+    if (!defined $FH) {
+        print STDERR "  Opening file in read mode ... " if $VERBOSE > 2;
+        open $FH, "+<", $file           or die "$THIS_FILE: $file: $!";
+        binmode $FH                     or die "$THIS_FILE: $file: $!";
+        flock $FH, LOCK_EX;
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+    ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
+    print STDERR "  Attaching file with IO::Uncompress::UnXz ... " if $VERBOSE > 2;
+    $self->{"xz"} = IO::Uncompress::UnXz->new($FH)
+                                        or die "$THIS_FILE: $file: $IO::Uncompress::UnXz::UnXzError";
+    print STDERR "done\n" if $VERBOSE > 2;
+    return;
+}
+
+# Open the file for writing
+sub open_write : method {
+    local ($_, %_);
+    my ($self, $file, $FH);
+    ($self, $file, $FH) = @_;
+    # Open the file if it is not opened yet
+    if (!defined $FH) {
+        print STDERR "  Creating file in write mode ... " if $VERBOSE > 2;
+        open $FH, "+>", $file           or die "$THIS_FILE: $file: $!";
+        binmode $FH                     or die "$THIS_FILE: $file: $!";
+        flock $FH, LOCK_EX;
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+    ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
+    print STDERR "  Attaching file with IO::Compress::Xz ... " if $VERBOSE > 2;
+    $self->{"xz"} = IO::Compress::Xz->new($FH, Extreme => 1)
+                                        or die "$THIS_FILE: $file: $IO::Compress::Xz::XzError";
+    print STDERR "done\n" if $VERBOSE > 2;
+    return;
+}
+
+# Open the file for appending
+sub open_append : method {
+    local ($_, %_);
+    my ($self, $file, $FH, $xz);
+    ($self, $file, $FH) = @_;
+    # Open the file if it is not opened yet
+    if (!defined $FH) {
+        print STDERR "  Opening file in read/write mode ... " if $VERBOSE > 2;
+        open $FH, "+<", $file           or die "$THIS_FILE: $file: $!";
+        binmode $FH                     or die "$THIS_FILE: $file: $!";
+        flock $FH, LOCK_EX;
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+    ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
+
+    # Save the original data if file has content so that file size is
+    # greater than 0.  STDOUT is always of size 0.
+    if ((stat $FH)[7] > 0) {
+        my ($count, $FHT, $xzt, $n);
+        seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
+        # Copy the original content to a buffer
+        print STDERR "  Reading compressed data to the buffer ... " if $VERBOSE > 2;
+        $FHT = tempfile                 or die "$THIS_FILE: tempfile: $!";
+        while (defined($_ = <$FH>)) {
+            print $FHT $_               or die "$THIS_FILE: tempfile: $!";
+        }
+        print STDERR "done\n" if $VERBOSE > 2;
+        print STDERR "  Restarting file ... " if $VERBOSE > 2;
+        seek $FHT, 0, SEEK_SET          or die "$THIS_FILE: tempfile: $!";
+        seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
+        truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+
+        # Decompress the buffer and save to our file
+        print STDERR "  Attaching buffer with IO::Uncompress::UnXz ... " if $VERBOSE > 2;
+        $xzt = IO::Uncompress::UnXz->new($FHT)
+                                        or die "$THIS_FILE: tempfile: $IO::Uncompress::UnXz::UnXzError";
+        print STDERR "done\n" if $VERBOSE > 2;
+        print STDERR "  Attaching file with IO::Compress::Xz ... " if $VERBOSE > 2;
+        $xz = IO::Compress::Xz->new($FH, Extreme => 1)
+                                        or die "$THIS_FILE: $file: $IO::Compress::Xz::XzError";
+        print STDERR "done\n" if $VERBOSE > 2;
+
+        print STDERR "  Reading old records back from the buffer ... " if $VERBOSE > 2;
+        $count = 0;
+        while (defined($_ = $xzt->getline)) {
+            ($xz->write($_) == length $_)
+                                        or die "$THIS_FILE: $file: $IO::Compress::Xz::XzError";
+            $count++;
+        }
+        close $FHT                      or die "$THIS_FILE: tempfile: $!";
+        print STDERR "$count records\n" if $VERBOSE > 2;
+
+    # A whole new file
+    } else {
+        print STDERR "  Attaching file with IO::Compress::Xz ... " if $VERBOSE > 2;
+        $xz = IO::Compress::Xz->new($FH, Extreme => 1)
+                                        or die "$THIS_FILE: $file: $IO::Compress::Xz::XzError";
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+
+    $self->{"xz"} = $xz;
+    return;
+}
+
+# Read a line from the I/O stream
+sub readline : method { $_[0]->{"xz"}->getline; }
+
+# Output data to the I/O stream
+sub write : method {
+    local ($_, %_);
+    my ($self, $file, $xz);
+    ($self, $_) = @_;
+    ($file, $xz) = ($self->{"file"}, $self->{"xz"});
+    ($xz->write($_) == length $_)       or die "$THIS_FILE: $file: $IO::Compress::Xz::XzError";
+    return;
+}
+
+# Close the I/O stream
+sub close : method {
+    local ($_, %_);
+    my ($self, $keep, $tmp, $file, $FH, $xz);
+    ($self, $keep, $tmp) = @_;
+    $keep = KEEP_ALL if @_ < 2;
+    ($file, $FH, $xz) = ($self->{"file"}, $self->{"FH"}, $self->{"xz"});
+
+    # Restart the file
+    if ($keep eq KEEP_RESTART) {
+        # Empty the source file
+        print STDERR "  Emptying file ... " if $VERBOSE > 2;
+        seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
+        truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+
+        # Create empty compressed content
+        print STDERR "  Applying empty compressed content ... " if $VERBOSE > 2;
+        $_ = IO::Compress::Xz->new($FH, Extreme => 1)
+                                        or die "$THIS_FILE: $file: $IO::Compress::Xz::XzError";
+        $_->close                       or die "$THIS_FILE: $file: $IO::Compress::Xz::XzError";
+        undef $_;
+        undef $xz;
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+
+    if (defined $xz) {
+        $xz->close                      or die "$THIS_FILE: $file: $IO::Compress::Xz::XzError";
+    }
+    CORE::close $self->{"FH"} if $self->{"FH"}->opened;
+    delete $self->{"xz"};
+    delete $self->{"FH"};
+    delete $self->{"file"};
+
+    # Delete the file
+    if ($keep eq KEEP_DELETE) {
+        print STDERR "  Deleting file ... " if $VERBOSE > 2;
+        unlink $file                    or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+    # Delete the temporary file if needed
+    if (defined $tmp && -e $tmp) {
+        unlink $tmp                     or die "$THIS_FILE: $tmp: $!";
+    }
+    return;
+}
+
+
+# _private::IO::Xz::Exec: The xz executable compression I/O handler
+package _private::IO::Xz::Exec;
+use 5.008;
+use strict;
+use warnings;
+use base qw(_private::IO);
+BEGIN {
+import main;
+}
+
+use Fcntl qw(:flock :seek);
+use File::Temp qw(tempfile);
+
+our ($EXEC);
+BEGIN {
+undef $EXEC;
+}
+
+# Open the file for reading
+sub open_read : method {
+    local ($_, %_);
+    my ($self, $file, $FH, $PH, $CMD);
+    ($self, $file, $FH) = @_;
+    # Open the file if it is not opened yet
+    if (!defined $FH) {
+        print STDERR "  Opening file in read mode ... " if $VERBOSE > 2;
+        open $FH, "+<", $file           or die "$THIS_FILE: $file: $!";
+        binmode $FH                     or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+    } else {
+        flock $FH, LOCK_UN;
+    }
+    ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
+    $EXEC = where_is "xz" if !defined $EXEC;
+
+    @_ = ($EXEC, "-cdf");
+    @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
+    $CMD = join " ", @_;
+    print STDERR "  Starting $CMD from file ... " if $VERBOSE > 2;
+    # Redirect STDIN to $FH
+    open STDIN, "<&", $FH               or die "$THIS_FILE: $file: $!";
+    # Start the process
+    if ($^O eq "MSWin32") {
+        open $PH, "$CMD |"              or die "$THIS_FILE: $CMD: $!";
+    } else {
+        open $PH, "-|", @_              or die "$THIS_FILE: $CMD: $!";
+    }
+    # Restore STDIN
+    open STDIN, "<&", $STDIN            or die "$THIS_FILE: STDIN: $!";
+    print STDERR "done\n" if $VERBOSE > 2;
+    ($self->{"CMD"}, $self->{"PH"}) = ([@_], $PH);
+    return;
+}
+
+# Open the file for writing
+sub open_write : method {
+    local ($_, %_);
+    my ($self, $file, $FH, $PH, $CMD);
+    ($self, $file, $FH) = @_;
+    # Open the file if it is not opened yet
+    if (!defined $FH) {
+        print STDERR "  Creating file in write mode ... " if $VERBOSE > 2;
+        open $FH, "+>", $file           or die "$THIS_FILE: $file: $!";
+        binmode $FH                     or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+    } else {
+        flock $FH, LOCK_UN;
+    }
+    ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
+    $EXEC = where_is "xz" if !defined $EXEC;
+
+    @_ = ($EXEC, "-c9f");
+    @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
+    $CMD = join " ", @_;
+    print STDERR "  Starting $CMD to file ... " if $VERBOSE > 2;
+    # Redirect STDOUT to $FH
+    open STDOUT, ">&", $FH              or die "$THIS_FILE: $file: $!";
+    # Start the process
+    if ($^O eq "MSWin32") {
+        open $PH, "| $CMD"              or die "$THIS_FILE: $CMD: $!";
+    } else {
+        open $PH, "|-", @_              or die "$THIS_FILE: $CMD: $!";
+    }
+    # Restore STDOUT
+    open STDOUT, ">&", $STDOUT          or die "$THIS_FILE: STDOUT: $!";
+    print STDERR "done\n" if $VERBOSE > 2;
+    ($self->{"CMD"}, $self->{"PH"}) = ([@_], $PH);
+    return;
+}
+
+# Open the file for appending
+sub open_append : method {
+    local ($_, %_);
+    my ($self, $file, $FH, $PH, $CMD);
+    ($self, $file, $FH) = @_;
+    # Open the file if it is not opened yet
+    if (!defined $FH) {
+        print STDERR "  Opening file in read/write mode ... " if $VERBOSE > 2;
+        open $FH, "+<", $file           or die "$THIS_FILE: $file: $!";
+        binmode $FH                     or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+    } else {
+        flock $FH, LOCK_UN;
+    }
+    ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
+    $EXEC = where_is "xz" if !defined $EXEC;
+
+    # Save the original data if file has content so that file size is
+    # greater than 0.  STDOUT is always of size 0.
+    if ((stat $FH)[7] > 0) {
+        my ($count, $FHT, $PHT, $CMD_T);
+        seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
+        # Copy the original content to a buffer
+        print STDERR "  Reading compressed data to the buffer ... " if $VERBOSE > 2;
+        $FHT = tempfile                 or die "$THIS_FILE: tempfile: $!";
+        while (defined($_ = <$FH>)) {
+            print $FHT $_               or die "$THIS_FILE: tempfile: $!";
+        }
+        print STDERR "done\n" if $VERBOSE > 2;
+        print STDERR "  Restarting file ... " if $VERBOSE > 2;
+        seek $FHT, 0, SEEK_SET          or die "$THIS_FILE: tempfile: $!";
+        seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
+        truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+
+        # Decompress the buffer and save to our file
+        @_ = ($EXEC, "-cdf");
+        @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
+        $CMD_T = join " ", @_;
+        print STDERR "  Starting $CMD_T from buffer ... " if $VERBOSE > 2;
+        # Redirect STDIN to $FH
+        open STDIN, "<&", $FHT          or die "$THIS_FILE: tempfile: $!";
+        # Start the process
+        if ($^O eq "MSWin32") {
+            open $PHT, "$CMD_T |"        or die "$THIS_FILE: $CMD_T: $!";
+        } else {
+            open $PHT, "-|", @_         or die "$THIS_FILE: $CMD_T: $!";
+        }
+        # Restore STDIN
+        open STDIN, "<&", $STDIN        or die "$THIS_FILE: STDIN: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+
+        @_ = ($EXEC, "-c9f");
+        @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
+        $CMD = join " ", @_;
+        print STDERR "  Starting $CMD to file ... " if $VERBOSE > 2;
+        # Redirect STDOUT to $FH
+        open STDOUT, ">&", $FH          or die "$THIS_FILE: $file: $!";
+        # Start the process
+        if ($^O eq "MSWin32") {
+            open $PH, "| $CMD"          or die "$THIS_FILE: $CMD: $!";
+        } else {
+            open $PH, "|-", @_          or die "$THIS_FILE: $CMD: $!";
+        }
+        # Restore STDOUT
+        open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+
+        print STDERR "  Reading old records back from the buffer ... " if $VERBOSE > 2;
+        $count = 0;
+        while (defined($_ = <$PHT>)) {
+            print $PH $_                or die "$THIS_FILE: $file: $!";
+            $count++;
+        }
+        close $PHT                      or die "$THIS_FILE: $CMD_T: $!";
+        close $FHT                      or die "$THIS_FILE: tempfile: $!";
+        print STDERR "$count records\n" if $VERBOSE > 2;
+
+    # A whole new file
+    } else {
+        @_ = ($EXEC, "-c9f");
+        @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
+        $CMD = join " ", @_;
+        print STDERR "  Starting $CMD to file ... " if $VERBOSE > 2;
+        # Redirect STDOUT to $FH
+        open STDOUT, ">&", $FH          or die "$THIS_FILE: $file: $!";
+        # Start the process
+        if ($^O eq "MSWin32") {
+            open $PH, "| $CMD"          or die "$THIS_FILE: $CMD: $!";
+        } else {
+            open $PH, "|-", @_          or die "$THIS_FILE: $CMD: $!";
+        }
+        # Restore STDOUT
+        open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+
+    ($self->{"CMD"}, $self->{"PH"}) = ([@_], $PH);
+    return;
+}
+
+# Read a line from the I/O stream
+sub readline : method {
+    local ($_, %_);
+    my ($self, $PH);
+    $self = $_[0];
+    $PH = $self->{"PH"};
+    return <$PH>;
+}
+
+# Output data to the I/O stream
+sub write : method {
+    local ($_, %_);
+    my ($self, $CMD, $PH);
+    ($self, $_) = @_;
+    ($CMD, $PH) = (join(" ", @{$self->{"CMD"}}), $self->{"PH"});
+    print $PH $_                        or die "$THIS_FILE: $CMD: $!";
+    return;
+}
+
+# Close the I/O stream
+sub close : method {
+    local ($_, %_);
+    my ($self, $keep, $tmp, $file, $FH, $CMD, $PH);
+    ($self, $keep, $tmp) = @_;
+    $keep = KEEP_ALL if @_ < 2;
+    ($file, $FH) = ($self->{"file"}, $self->{"FH"});
+
+    # Restart the file
+    if ($keep eq KEEP_RESTART) {
+        my ($CMD, $PH);
+        # Empty the source file
+        print STDERR "  Emptying file ... " if $VERBOSE > 2;
+        seek $FH, 0, SEEK_SET           or die "$THIS_FILE: $file: $!";
+        truncate $FH, 0                 or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+
+        # Create empty compressed content
+        print STDERR "  Applying empty compressed content ... " if $VERBOSE > 2;
+        $EXEC = where_is "xz" if !defined $EXEC;
+        @_ = ($EXEC, "-c9f");
+        @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
+        $CMD = join " ", @_;
+        # Redirect STDOUT to $FH
+        open STDOUT, ">&", $FH          or die "$THIS_FILE: $file: $!";
+        # Start the process and end it
+        if ($^O eq "MSWin32") {
+            open $PH, "| $CMD"          or die "$THIS_FILE: $CMD: $!";
+        } else {
+            open $PH, "|-", @_          or die "$THIS_FILE: $CMD: $!";
+        }
+        close $PH                       or die "$THIS_FILE: $CMD: $!";
+        # Restore STDOUT
+        open STDOUT, ">&", $STDOUT      or die "$THIS_FILE: STDOUT: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+
+    ($CMD, $PH) = (join(" ", @{$self->{"CMD"}}), $self->{"PH"});
+    CORE::close $PH                     or die "$THIS_FILE: $CMD: $!";
+    CORE::close $FH                     or die "$THIS_FILE: $file: $!";
+    delete $self->{"PH"};
+    delete $self->{"CMD"};
+    delete $self->{"FH"};
+    delete $self->{"file"};
+
+    # Delete the file
+    if ($keep eq KEEP_DELETE) {
+        print STDERR "  Deleting file ... " if $VERBOSE > 2;
+        unlink $file                    or die "$THIS_FILE: $file: $!";
+        print STDERR "done\n" if $VERBOSE > 2;
+    }
+    # Delete the temporary file if needed
+    if (defined $tmp && -e $tmp) {
+        unlink $tmp                     or die "$THIS_FILE: $tmp: $!";
+    }
+    return;
+}
+
+
 # _private::Filter: The log file filter
 # The filter can be override to implementing different log file formats.
 #   Maybe GeoIP.  Or MS-Extended, in the future.
@@ -2292,10 +2785,11 @@ I suggest that you install L<File::MMagic(3)|File::MMagic/3> instead
 of counting on the L<file(1)|file/1> executable.  The internal magic
 file of L<File::MMagic(3)|File::MMagic/3> works better than the
 L<file(1)|file/1> executable.  F<reslog> treats everything not
-L<gzip(1)|gzip/1> nor L<bzip2(1)|bzip2/1> compressed as plain text.
-When a compressed log file is wrongly recognized as an image,
-F<reslog> treats it as plain text, reads directly from it, and fails.
-This does not hurt the source log files, but is still annoying.
+L<gzip(1)|gzip/1>, L<bzip2(1)|bzip2/1>, nor L<xz(1)|xz/1> compressed
+as plain text.  When a compressed log file is wrongly recognized as
+an image, F<reslog> treats it as plain text, reads directly from it,
+and fails.  This does not hurt the source log files, but is still
+annoying.
 
 =head1 OPTIONS
 
@@ -2306,7 +2800,8 @@ This does not hurt the source log files, but is still annoying.
 The log file to be resolved.  You can specify multiple log files.  If
 not specified, it reads from C<STDIN> and outputs to C<STDOUT>.  You
 can also specify C<-> to read from C<STDIN>.  Result of C<STDIN>
-goes to C<STDOUT>.  gzip or bzip2 compressed files are supported.
+goes to C<STDOUT>.  gzip, bzip2, or xz compressed files are
+supported.
 
 =item -k, --keep mode
 
@@ -2429,6 +2924,8 @@ messages.
 
 L<Compress::Zlib(3)>,
 L<Compress::Bzip2(3)>,
+L<xz(1)|xz/1>, L<IO::Compress::Xz(3)|IO::Compress::Xz/3>,
+L<IO::Uncompress::UnXz(3)|IO::Uncompress::UnXz/3>,
 L<perlthrtut(1)>, L<gzip(1)>, L<zlib(3)>,
 L<bzip2(1)>.
 

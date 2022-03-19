@@ -1,7 +1,7 @@
 #! /usr/bin/perl -w
 # Test the errors that should be captured.
 
-# Copyright (c) 2007-2021 imacat.
+# Copyright (c) 2007-2022 imacat.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ use warnings;
 use diagnostics;
 use Test;
 
-BEGIN { plan tests => 7 }
+BEGIN { plan tests => 9 }
 
 use File::Basename qw(basename);
 use File::Path qw(mkpath rmtree);
@@ -35,7 +35,7 @@ $WORKDIR = catdir($FindBin::Bin, "logs");
 $reslog = catfile($FindBin::Bin, updir, "blib", "script", "reslog");
 $tno = 0;
 
-# 1-6: Trim suffix is the same as suffix
+# 1-8: Trim suffix is the same as suffix
 foreach my $st (@SOURCE_TYPES) {
     # 1: Trim suffix is the same as suffix
     $_ = eval {
@@ -126,7 +126,7 @@ foreach my $st (@SOURCE_TYPES) {
     clean_up $_ || $$st{"skip"}, $WORKDIR, ++$tno;
 }
 
-# 7: A same log file is specified more than once
+# 9: A same log file is specified more than once
 $_ = eval {
     my ($title, $cmd, $ret_no, $out, $err, %logfiles);
     my ($fr, $frb, @fle, $fle, $flr, %cef, %crf, %tef, %trf);
