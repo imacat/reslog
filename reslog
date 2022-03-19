@@ -50,7 +50,7 @@ use IO::Handle;
 our ($THIS_FILE, $VERBOSE);
 our ($VERSION);
 $THIS_FILE = basename($0);
-$VERSION = "3.17";
+$VERSION = "3.18";
 $VERBOSE = 1;
 
 # Constants
