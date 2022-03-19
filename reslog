@@ -1760,7 +1760,7 @@ sub open_write : method {
     ($self->{"file"}, $self->{"FH"}) = ($file, $FH);
     $EXEC = where_is "bzip2" if !defined $EXEC;
 
-    @_ = ($EXEC, "-9f");
+    @_ = ($EXEC, "-c9f");
     @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
     $CMD = join " ", @_;
     print STDERR "  Starting $CMD to file ... " if $VERBOSE > 2;
@@ -1831,7 +1831,7 @@ sub open_append : method {
         open STDIN, "<&", $STDIN        or die "$THIS_FILE: STDIN: $!";
         print STDERR "done\n" if $VERBOSE > 2;
 
-        @_ = ($EXEC, "-9f");
+        @_ = ($EXEC, "-c9f");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
         $CMD = join " ", @_;
         print STDERR "  Starting $CMD to file ... " if $VERBOSE > 2;
@@ -1859,7 +1859,7 @@ sub open_append : method {
 
     # A whole new file
     } else {
-        @_ = ($EXEC, "-9f");
+        @_ = ($EXEC, "-c9f");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
         $CMD = join " ", @_;
         print STDERR "  Starting $CMD to file ... " if $VERBOSE > 2;
@@ -1919,7 +1919,7 @@ sub close : method {
         # Create empty compressed content
         print STDERR "  Applying empty compressed content ... " if $VERBOSE > 2;
         $EXEC = where_is "bzip2" if !defined $EXEC;
-        @_ = ($EXEC, "-9f");
+        @_ = ($EXEC, "-c9f");
         @_ = map "\"$_\"", @_ if $^O eq "MSWin32";
         $CMD = join " ", @_;
         # Redirect STDOUT to $FH
