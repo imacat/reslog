@@ -60,11 +60,11 @@ my $build = Module::Build->new(
         "perl"			=> "5.8.0",
     },
     recommends		=> {
-        "File::MMagic"		=> 0,
+        "File::MMagic"			=> 0,
         "IO::Compress::Gzip"	=> 0,
         "IO::Compress::Bzip2"	=> 0,
-        "IO::Compress::Xz"	=> 0,
-        "Term::ReadKey"		=> 0,
+        "IO::Compress::Xz"		=> 0,
+        "Term::ReadKey"			=> 0,
     },
     build_requires		=> {
         "Module::Signature"	=> 0,

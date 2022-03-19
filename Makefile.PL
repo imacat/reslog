@@ -51,11 +51,11 @@ EOT
 # Optional prerequisite modules
 our (%OPT_PREREQ);
 %OPT_PREREQ = (
-    "File::MMagic"	=> 0,
+    "File::MMagic"			=> 0,
     "IO::Compress::Gzip"	=> 0,
     "IO::Compress::Bzip2"	=> 0,
-    "IO::Compress::Xz"	=> 0,
-    "Term::ReadKey"	=> 0,
+    "IO::Compress::Xz"		=> 0,
+    "Term::ReadKey"			=> 0,
 );
 delete $OPT_PREREQ{$_}
     foreach grep eval "use $_ $OPT_PREREQ{$_} qw(); 1;", sort keys %OPT_PREREQ;
